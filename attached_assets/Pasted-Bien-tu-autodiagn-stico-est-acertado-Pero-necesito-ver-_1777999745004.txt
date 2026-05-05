@@ -1,0 +1,47 @@
+Bien, tu autodiagnóstico está acertado. Pero necesito ver el código real, no la lista de problemas. Te explico por qué y qué le pides.
+El detalle importante:
+Replit Agent te dio una lista de problemas pero no me pegó el código del schema. No puedo revisar línea por línea sin ver:
+
+El contenido completo de los archivos .ts del schema (todos)
+El archivo de migración SQL si lo hubiera (que dice no haber generado)
+La configuración de drizzle.config.ts
+
+Sin eso estoy revisando un resumen de un resumen. Y los detalles importan — un campo mal nombrado, un tipo equivocado, un nullable mal puesto, son cosas que se ven en código pero no en resumen.
+Sobre los problemas que ya identificó:
+Tu Agent ya hizo el 60% del trabajo identificando solo. Eso está bien, significa que entendió la revisión. Pero quiero confirmar que sus correcciones sean las correctas, no las que él interpreta como correctas. Diferencia importante.
+Por ejemplo: el problema 6 (sin migración generada)
+Esto es más serio de lo que él lo presenta. drizzle-kit push aplica cambios directos a la DB sin generar SQL versionado. Está bien para prototipo, pero para portabilidad (que es regla #1 de tu proyecto) necesitas migraciones generadas. Cuando muevas a Neon o a tu VPS con Postgres propio, las migraciones son la única forma profesional de replicar el schema. push es como arrastrar archivos en lugar de usar Git.
+Hay que cambiar el flujo:
+
+drizzle-kit generate → crea SQL en drizzle/migrations/
+drizzle-kit migrate → aplica las migraciones a la DB
+Las migraciones se commitean al repo
+
+Eso es disciplina de producción desde el inicio. No después.
+Mensaje para Replit:
+
+Buen autodiagnóstico, identificaste los 6 problemas correctamente. Pero antes de que corrijas, necesito ver el código real, no el resumen. Pega:
+
+Contenido completo de cada archivo .ts del schema. Si tienes lib/db/schema/lawyers.ts, jurisdictions.ts, etc., pega cada uno completo. Si tienes un solo archivo, pégalo entero. No resumen, código real.
+El archivo drizzle.config.ts completo.
+Confirma: ¿la carpeta drizzle/migrations/ existe o no? Si no existe, lo confirmamos como problema #6.
+
+Sobre el problema #6 (sin migraciones generadas):
+Esto es más serio de lo que parece. drizzle-kit push aplica cambios sin SQL versionado. Para portabilidad real (regla #1 del proyecto), necesitamos migraciones generadas y commiteadas al repo. Cuando muevas a Neon o VPS propio, las migraciones son la única forma de replicar el schema correctamente. push solo se usa en prototipos descartables, no en proyectos serios.
+Cambio de flujo desde ahora:
+
+Primero corregir el schema con todos los issues que identificaste
+Generar migración con drizzle-kit generate (no push)
+Aplicar con drizzle-kit migrate
+Commitear drizzle/ al repo
+
+Pega el código y lo reviso completo antes de que toques nada. Espera mi confirmación antes de aplicar correcciones.
+
+Mientras tanto, tres cosas que también quiero confirmar antes de que corrija:
+a) Sobre los campos que añadiremos:
+El campo lawyers.languages en tu resumen aparece como languages[]. Pregunta clave: ¿es array de strings (text[]) o es una tabla relacional? Te recomiendo array de slugs estandarizados (['en', 'es', 'zh'] con códigos ISO 639-1). Más simple y suficiente.
+b) lawyers.email_public — si decidiste hacerlo nullable:
+Necesitas otro campo lawyers.contact_email que NO sea nullable (para que tú/admin puedas contactar al abogado, aunque su email no sea público). Esto es crítico para vender leads — si el abogado no quiere mostrar email pero compra leads, ¿cómo le mandas el contacto del cliente? Pregunta importante.
+c) articles.content:
+¿Qué tipo es? Si es text, está bien para almacenar markdown/MDX. Si lo hiciste como JSON estructurado, te complicas innecesariamente. Markdown plain text es lo correcto para el caso de uso.
+Pásame el código real y verifico todo de una vez.
