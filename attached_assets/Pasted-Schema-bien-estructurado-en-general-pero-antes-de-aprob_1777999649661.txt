@@ -1,0 +1,108 @@
+Schema bien estructurado en general, pero antes de aprobar necesito ver el código real del schema, no solo el resumen, porque hay 5 detalles técnicos que pueden estar mal y son caros de corregir después.
+Cosas que necesito verificar en el código:
+1. Índices (indexes) — esto es crítico para performance
+Sin índices correctos, las búsquedas van a ser lentas a partir del abogado #500. Los que necesitas confirmar que existen:
+
+lawyers.slug — UNIQUE INDEX (búsqueda por slug)
+lawyers.status — INDEX (filtrar published)
+lawyers.tier — INDEX (ordenar featured primero)
+lawyers.claimed_by_user_id — INDEX (Clerk lookup)
+lawyer_jurisdictions(lawyer_id, jurisdiction_id) — UNIQUE COMPOSITE
+lawyer_specialties(lawyer_id, specialty_id) — UNIQUE COMPOSITE
+specialties.slug — UNIQUE
+specialties.practice_area_id — INDEX
+jurisdictions.slug — UNIQUE
+jurisdictions.country_code — INDEX
+articles.slug — UNIQUE
+articles.status — INDEX (filtrar published)
+articles.published_at — INDEX (ordenar por fecha)
+articles.specialty_id, articles.jurisdiction_id, articles.practice_area_id — INDEX (filtrar por categoría)
+leads.status — INDEX (admin queries)
+leads.case_type_specialty_id + leads.jurisdiction_id — INDEX COMPOSITE (matching abogados)
+leads.created_at — INDEX (ordenar nuevos primero)
+lead_purchases.lawyer_id — INDEX
+lead_purchases.lead_id — INDEX
+newsletter_subscribers.email — UNIQUE
+newsletter_subscribers.confirmation_token — UNIQUE
+
+2. Foreign keys con onDelete correcto
+¿Qué pasa si borras un abogado? ¿Sus jurisdicciones y especialidades quedan huérfanas?
+
+lawyer_jurisdictions.lawyer_id → onDelete: 'cascade' (si borras lawyer, borra sus jurisdicciones)
+lawyer_jurisdictions.jurisdiction_id → onDelete: 'restrict' (no permitas borrar una jurisdicción si tiene abogados)
+lawyer_specialties.lawyer_id → onDelete: 'cascade'
+lawyer_specialties.specialty_id → onDelete: 'restrict'
+specialties.practice_area_id → onDelete: 'restrict'
+lead_purchases.lead_id → onDelete: 'cascade'
+lead_purchases.lawyer_id → onDelete: 'restrict' (no permitir borrar abogado con purchases — historial de pagos)
+articles.specialty_id, articles.jurisdiction_id, articles.practice_area_id → onDelete: 'set null' (si borras categoría, el artículo queda sin categoría pero no se borra)
+
+3. Campos timestamp — todos los registros deben tener created_at y updated_at
+¿Está agregado en TODAS las tablas? Necesitas:
+
+created_at: timestamp().defaultNow().notNull()
+updated_at: timestamp().defaultNow().notNull().$onUpdate(() => new Date())
+
+Drizzle tiene $onUpdate que lo actualiza automáticamente. Confirmar que está en lawyers, articles, leads, specialties, practice_areas, jurisdictions.
+4. Campos que faltan o que omitiste
+Revisando tu resumen, no veo estos:
+
+lawyers.location_city y lawyers.location_state_or_country — para mostrar "Based in Miami, FL" en perfil. Diferente de jurisdicciones (donde practica) vs dónde físicamente está.
+lawyers.hourly_rate_range o lawyers.consultation_fee — opcional pero útil
+lawyers.accepts_crypto_payment — boolean, gancho marketing genial para el nicho
+lawyers.free_consultation — boolean, factor de conversión importante
+lawyers.profile_views_count — para analytics de qué perfiles se ven más
+lawyers.average_response_time_hours — opcional pero ayuda a tier featured
+lawyer_jurisdictions.bar_status — active / inactive / retired (diferente de presence_level)
+articles.featured_image_url — para Open Graph y card preview
+articles.featured_image_alt — accesibilidad y SEO
+articles.tags — array de strings para tagging suelto (separado de specialty/jurisdiction)
+articles.view_count — analytics
+leads.ip_address y leads.user_agent — anti-spam y compliance
+leads.utm_source, utm_medium, utm_campaign — atribución de marketing crítica para optimizar SEO/ads
+lead_purchases.notified_at — timestamp cuando se notificó al abogado
+lead_purchases.contacted_client_at — timestamp cuando el abogado contactó al cliente (para SLA)
+newsletter_subscribers.unsubscribed_at — soft delete para compliance GDPR/CAN-SPAM
+
+5. Validaciones a nivel DB
+
+lawyers.email_public debería tener CHECK de formato email a nivel Postgres, o al menos NOT NULL si es required (probablemente nullable porque algunos abogados no quieren mostrar email)
+Enums de Postgres vs strings: ¿usaste pgEnum para status, tier, presence_level, budget_range, urgency, purchase_type? Si usaste solo strings con default, pierdes la validación a nivel DB. Drizzle soporta pgEnum perfectamente.
+
+
+Lo que necesito que me mandes:
+Pídele a Replit Agent que pegue el código completo de los archivos del schema. Probablemente está en lib/db/schema/ con archivos por tabla o en uno solo. Mándame:
+
+Todos los archivos .ts del schema completos
+El archivo de migración generado por drizzle-kit (carpeta drizzle/ o migrations/)
+
+Con eso reviso línea por línea y te digo qué corregir antes de avanzar al seed.
+Mensaje para Replit:
+
+Antes de aprobar y avanzar al seed, necesito ver el código completo del schema, no solo el resumen. Pega:
+
+Todos los archivos .ts de lib/db/schema/ (o donde hayas puesto el schema)
+El archivo SQL de migración generado por drizzle-kit generate
+
+Quiero verificar específicamente:
+Indexes: todos los slugs son UNIQUE INDEX, y hay índices en campos de filtrado frecuente (status, tier, claimed_by_user_id, specialty_id, jurisdiction_id, published_at, etc.)
+Foreign keys con onDelete: cascade donde corresponde (lawyer_jurisdictions, lawyer_specialties, lead_purchases.lead_id), restrict donde corresponde (specialties.practice_area_id, lead_purchases.lawyer_id), set null en articles cuando borras categoría.
+Timestamps: created_at y updated_at (con $onUpdate) en TODAS las tablas mutables.
+Enums Postgres: que status, tier, presence_level, budget_range, urgency, purchase_type usen pgEnum, no strings sueltos.
+Campos que probablemente faltan:
+
+lawyers.location_city, location_country_code (dónde físicamente está, distinto de jurisdicciones)
+lawyers.accepts_crypto_payment boolean
+lawyers.free_consultation boolean
+lawyers.profile_views_count integer default 0
+articles.featured_image_url, featured_image_alt
+articles.tags array
+articles.view_count integer default 0
+leads.ip_address, user_agent
+leads.utm_source, utm_medium, utm_campaign
+lead_purchases.notified_at, contacted_client_at
+newsletter_subscribers.unsubscribed_at
+
+Pega el código y reviso antes de aprobar. No avances al seed todavía.
+
+Mándale eso. Cuando regrese con el código del schema, pásamelo aquí completo y lo reviso de verdad línea por línea.Opus 4.7Claude es IA y puede cometer errores. Por favor, verifica nuevamente las respuestas.
