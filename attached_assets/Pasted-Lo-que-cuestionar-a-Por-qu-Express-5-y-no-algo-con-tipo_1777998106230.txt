@@ -1,0 +1,20 @@
+Lo que cuestionaría
+
+¿Por qué Express 5 y no algo con tipos nativos? Para un proyecto que claramente le metiste pensamiento en tipado end-to-end (Drizzle, Zod, Orval), Express se queda corto. Hono o Fastify con @fastify/type-provider-zod te dan validación e inferencia automática de tipos en handlers sin middleware extra. Express 5 sigue siendo "callbacks con tipos pegados encima". Si ya estás generando OpenAPI desde algún lado, considera generarlo desde el backend (tRPC, Hono con @hono/zod-openapi, o ts-rest) en vez de mantener el spec a mano.
+¿Quién es el dueño del OpenAPI spec? Esto es lo más importante de aclarar. Si lo escribes a mano y de ahí generas cliente y validación de backend, está bien pero requiere disciplina. Si lo generas desde el backend, mejor. Si lo generas desde el cliente, mal. Define esto explícitamente en el README porque es donde se rompen estos setups a los 6 meses.
+esbuild CJS para backend en Node 24 — ¿por qué CJS? Node 24 corre ESM nativo perfectamente, y tu stack ya es todo ESM. Salir CJS te va a morder cuando importes paquetes ESM-only (que cada vez son más). Cambia a format: 'esm' y platform: 'node'.
+React Hook Form + Zod + Radix + Tanstack + Framer + Wouter + Lucide — son 7 librerías de UI/estado. Para un directorio (que asumo es: lista de abogados, filtros, perfil, contacto, quizá login admin), esto puede ser overkill. Framer Motion en particular pesa. Pregúntate qué animaciones realmente justifican 50KB+. Tailwind v4 ya tiene @starting-style y view transitions decentes.
+PostgreSQL managed por Replit — esto es lo que más me preocuparía a largo plazo. Replit es excelente para prototipar pero su Postgres managed no es Neon ni Supabase ni RDS en términos de durabilidad, backups, y escape hatch. Si esto va a producción real con datos de abogados/clientes (potencialmente sensibles, posiblemente regulados), planea la salida desde ahora: usa Drizzle de forma agnóstica, mantén migraciones versionadas en el repo, y ten en mente Neon o Supabase como destino.
+
+Lo que falta y deberías decidir ya
+
+Auth: no veo nada. ¿Lucia, Auth.js, Clerk, custom con cookies? Para un directorio con admin panel y posiblemente perfiles de abogados que se auto-administran, esto define mucho del backend.
+Storage de archivos: los abogados van a subir foto de perfil, credenciales, quizás documentos. ¿S3, R2, UploadThing?
+Búsqueda: ¿Postgres full-text (tsvector), pg_trgm, Meilisearch, Typesense? Un directorio vive o muere por la búsqueda. ILIKE no es búsqueda.
+Email transaccional: Resend, Postmark.
+Observabilidad en prod: Pino está bien para logs, pero ¿dónde van? ¿Axiom, Better Stack, Grafana Cloud?
+Pagos (si aplica para directorio premium): Stripe.
+
+Resumen honesto
+El stack frontend y la capa de contratos están muy bien pensados. El backend (Express 5 + CJS) es la parte más débil y desentona con el resto. Si estás en etapa temprana, cambiar a Hono o Fastify ahora te ahorra dolor después. Si ya está construido y funciona, no rompas nada — pero al menos pasa a ESM.
+¿Qué etapa está el proyecto? ¿Ya hay código corriendo o estás definiendo el stack todavía?
