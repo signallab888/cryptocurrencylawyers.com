@@ -1,0 +1,44 @@
+Las 4 correcciones que debe aplicar:
+
+output: 'hybrid' ya no existe en Astro 5 — usa output: 'static' y controla SSR por página con export const prerender = false donde haga falta.
+Necesita adapter @astrojs/node en modo standalone para que el SSR funcione en Replit y portable a VPS propio.
+Tailwind v4 no usa @astrojs/tailwind — usa @tailwindcss/vite plugin directamente en astro.config.mjs.
+Falta practice-areas/[slug].astro en su lista de páginas.
+
+Lo que SÍ entendió bien:
+
+Que solo cambia el frontend, todo lo demás es igual
+Que artifacts/crypto-lawyers se reemplaza manualmente
+El orden de construcción (DB → schema → seed → OpenAPI → codegen → backend → Astro)
+Las páginas que necesita crear
+Que specialties/[specialty]/[jurisdiction] es el oro SEO
+Que admin va con Clerk SSR
+
+Lo que le mandas ahora:
+Copia y pégale esto:
+
+Sí, entendiste el cambio correctamente. Cuatro correcciones técnicas antes de arrancar:
+1. Astro 5 deprecó output: 'hybrid'. Usa:
+jsexport default defineConfig({
+  output: 'static',
+  adapter: node({ mode: 'standalone' }),
+});
+Y en cada página que necesite SSR (búsqueda, admin):
+jsexport const prerender = false;
+2. Adapter: @astrojs/node en modo standalone. Portable a Replit, VPS propio, cualquier servidor con Node 24.
+3. Tailwind v4 NO usa @astrojs/tailwind (esa integración era para v3). Usa el plugin de Vite:
+jsimport tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+  vite: { plugins: [tailwindcss()] },
+});
+Y en CSS: @import "tailwindcss";
+4. Falta practice-areas/[slug].astro en tu lista de páginas. Agrégala — son las páginas hub de las 7 áreas de práctica padre, importantes para topical authority.
+5. client: directives — usa el más conservador siempre:
+
+Buscador home: client:visible
+Filtros búsqueda: client:load
+Lead form: client:visible
+Modales/dropdowns: client:idle
+
+Todo lo demás del plan correcto. Arranca con paso 1 (provisionar DB) y paso 2 (schema Drizzle). Cuando termines el schema, muéstramelo antes de seguir con seed data.
