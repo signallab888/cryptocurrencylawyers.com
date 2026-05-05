@@ -1,0 +1,31 @@
+Confirmo el modelo de negocio: lead generation enfocado a abogados de cripto + contenido SEO masivo. El directorio es el motor del SEO, los leads son la monetización principal, y los tiers de abogados son monetización secundaria.
+Esto significa que el schema de Drizzle debe contemplar desde día uno:
+
+lawyers — con status (draft / pending_review / published / suspended), tier (free / featured / premium), claimed_by_user_id (nullable, FK a Clerk), created_by (admin / self_signup / claimed)
+jurisdictions + lawyer_jurisdictions (many-to-many) con bar_number, admitted_year, is_primary, presence_level
+practice_areas + specialties (catálogos jerárquicos, dos niveles) + lawyer_specialties (many-to-many) con years_experience, is_featured
+leads — los formularios que llenan los clientes. Campos: client_name, client_email, client_phone, case_type (FK a specialty), jurisdiction_id, budget_range (enum: under_10k / 10k_50k / 50k_250k / 250k_plus / unknown), urgency (enum: immediate / weeks / planning), description (text), status (new / qualified / sold / closed / spam), created_at
+lead_purchases — qué abogado compró qué lead. Campos: lead_id, lawyer_id, amount_paid, purchase_type (exclusive / shared), stripe_payment_id, created_at
+articles — el contenido editorial. Campos: slug, title, meta_title, meta_description, content (MDX), practice_area_id (nullable), specialty_id (nullable), jurisdiction_id (nullable), status (draft / published), published_at, author_id
+newsletter_subscribers — email, source (qué página lo capturó), confirmed, created_at
+
+Para el OpenAPI spec, las prioridades son:
+
+Endpoint de búsqueda de abogados con filtros: especialidad, jurisdicción, presence_level, tier (para mostrar featured primero), paginación, ordenamiento
+Endpoint de creación de lead (público, sin auth, con captcha)
+Endpoint de listado de leads para admin (con auth admin via Clerk)
+Endpoint de articles (público, con filtros por practice_area, specialty, jurisdiction)
+
+Stripe lo integramos en fase 2, no ahora. Pero el schema de lead_purchases ya lo contempla.
+Arrancamos por:
+
+Schema completo de Drizzle con todas estas tablas
+Migrations
+Seed data: las 7 practice areas y las 25-30 specialties iniciales (lista cerrada que yo curo)
+Seed de jurisdictions: los 50 estados US + DC + países principales (UK, ES, MX, CA, AU, SG, CH, EU)
+OpenAPI spec con los 4 endpoints prioritarios
+Generar cliente y Zod con Orval
+Validación de respuestas en backend con Zod (cableado desde el principio)
+Clerk integrado solo para admin en fase 1
+
+Frontend lo arrancamos en paralelo con design tokens primero (Tailwind v4 @theme), referencias visuales: Stripe / Linear / Bloomberg. Tono serio + técnico + moderno. Nada de neón cripto ni bufete acartonado.
