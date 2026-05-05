@@ -1,0 +1,57 @@
+Astro. La decisión es clara y no transijo aquí.
+Sobre tus dos puntos:
+1. "No está soportado como artifact en Replit" — eso significa que no tienes un template pre-configurado, no que Astro no funcione. Astro corre en Node 24 estándar, que es lo que ya tenemos. El setup manual es trabajo de un día, no un bloqueador. Procede con configuración manual.
+2. "Migrar después con vite-ssg" — no. Migrar después de tener 50+ páginas indexadas, abogados cargados, y URLs en Google es 100x más caro que decidir bien ahora. Y vite-ssg le falta islands architecture real, image optimization nativa, sitemap automático y schema.org ergonómico. No es equivalente a Astro.
+Costo real de elegir Astro ahora: ~1 día de setup manual.
+Costo de migrar después: 2-3 semanas + riesgo de perder ranking + redirects 301.
+Decisión: Astro 5 desde el inicio.
+Setup que necesito que confirmes que puedes hacer en Replit:
+
+pnpm create astro@latest en artifacts/crypto-lawyers con template mínimo, TypeScript estricto
+Integraciones oficiales:
+
+@astrojs/react (para islands)
+@astrojs/tailwind o config manual de Tailwind v4 (Tailwind v4 ya no necesita plugin, solo el @import)
+@astrojs/sitemap
+@astrojs/rss
+@astrojs/mdx (para artículos)
+@clerk/astro (auth)
+
+
+Verificar que las islands de React funcionen con todo el stack:
+
+Radix UI + Lucide ✓
+React Hook Form + Zod ✓
+Framer Motion ✓
+TanStack Query ✓
+
+
+Configurar astro.config.mjs con:
+
+output: 'static' por default
+output: 'hybrid' si necesitamos SSR para algunas rutas (búsqueda dinámica)
+Site URL para sitemap
+Integraciones arriba
+
+
+Estructura src/pages/:
+
+index.astro (home)
+lawyers/[slug].astro (perfil, getStaticPaths desde DB)
+lawyers/index.astro (búsqueda con island de React)
+specialties/[slug].astro (página de especialidad)
+specialties/[specialty]/[jurisdiction].astro (página programática especialidad × jurisdicción — esto es oro SEO)
+jurisdictions/[slug].astro
+practice-areas/[slug].astro
+articles/[slug].astro
+articles/index.astro
+find-a-lawyer.astro (lead capture, island de React)
+admin/* (Clerk-protected, server-rendered)
+
+
+sitemap.xml y robots.txt configurados desde el inicio
+Layout base con slots para <head> (Open Graph, Twitter Cards, schema.org JSON-LD, canonical)
+
+El backend (Express + Drizzle + OpenAPI + Orval), schema de DB, Clerk admin, todo lo demás del plan se queda IDÉNTICO. Solo cambia el shell del frontend de Vite a Astro.
+Procede con el paso 1 del plan original (verificar estructura del monorepo) y luego pasos 2-7 (DB, schema, seed, OpenAPI, codegen, backend, Clerk). El frontend en Astro lo configuras en paralelo a partir del paso 5 cuando ya hay hooks generados.
+Confirma que tienes claro el cambio y arranca.
