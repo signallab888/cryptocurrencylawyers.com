@@ -1,0 +1,40 @@
+Pregunta 2: Especialidades — lista cerrada, controlada por tiSin discusión. Free text mata el SEO programático y ensucia los filtros. La pregunta real es qué taxonomía, y aquí es donde te conviene pensar dos minutos antes de escribir.Para abogados de cripto, la taxonomía útil tiene dos niveles:Nivel 1 — Áreas de práctica (categorías padre):
+
+Regulatory & Compliance
+Litigation & Enforcement
+Tax
+Transactional
+Intellectual Property
+Criminal Defense
+Estate Planning & Wealth
+Nivel 2 — Especialidades específicas (lo que de verdad rankea):
+
+sec-enforcement-defense
+cftc-enforcement-defense
+defi-protocol-counsel
+token-launches-ico-ido
+dao-formation-governance
+nft-disputes
+crypto-tax-compliance
+crypto-tax-litigation (IRS audits, etc.)
+mica-compliance (UE)
+stablecoin-regulation
+exchange-licensing (MSB, BitLicense, VASP)
+aml-kyc-compliance
+crypto-bankruptcy (post-FTX/Celsius hay nicho real)
+crypto-fraud-recovery
+smart-contract-audits-legal
+mining-operations-counsel
+crypto-estate-planning
+crypto-divorce-asset-division
+web3-employment-token-comp
+cross-border-crypto-transactions
+Modelo en Drizzle:
+practice_areas (catálogo nivel 1, ~7 filas)
+specialties (catálogo nivel 2, ~25-40 filas, cada una con practice_area_id, slug, name, description, seo_meta_title, seo_meta_description)
+lawyer_specialties (tabla puente con lawyer_id, specialty_id, years_experience, is_featured — esta última para que el abogado pueda destacar 2-3 de sus 8 especialidades en su tarjeta de búsqueda)
+Por qué dos niveles importa para SEO: te genera dos capas de páginas rankeables:
+/practice-areas/regulatory-compliance/ (categoría amplia, alta competencia, brand)
+/specialties/sec-enforcement-defense/ (cola larga, baja competencia, conversión alta)
+/specialties/sec-enforcement-defense/new-york/ (intersección con jurisdicción — oro puro)
+Con un solo nivel pierdes la categoría amplia. Con tres niveles te complicas sin ganancia.Detalle clave: los slugs de especialidades son tu activo de SEO más importante después del dominio. No los cambies después. Decídelos con calma. Yo te di 20, pero lánzate con los 12-15 que de verdad tienen búsqueda mensual real (revísalo con Ahrefs o Google Keyword Planner antes de hardcodearlos). Mejor tener 12 especialidades con tráfico real que 30 vacías.
