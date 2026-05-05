@@ -1,0 +1,15 @@
+Tres razones:
+1. Realidad del mercado de abogados cripto. Los abogados de cripto serios casi siempre están barred en múltiples estados. Es un nicho donde los clientes son globales y los casos cruzan jurisdicciones constantemente. Un abogado de SEC enforcement típicamente tiene NY + DC mínimo. Uno de tax compliance puede tener CA + TX + FL. Internacional es aún más común — bufetes con oficinas en US + UK + Singapur o Suiza.
+2. Si modelas "una jurisdicción por abogado" hoy, te vas a arrepentir en 3 meses. Cambiar de campo único a tabla many-to-many con datos ya cargados es un dolor: migración de datos, refactor de queries, refactor de UI de filtros, refactor del endpoint de búsqueda, refactor del OpenAPI spec, regeneración de cliente y Zod. Todo eso por una decisión que tomas mal hoy en 30 segundos.
+3. SEO programático lo necesita. Las páginas que van a rankear son cruces tipo /abogados/new-york/defi-litigation y /abogados/california/defi-litigation. Si un abogado está en ambos estados, debe aparecer en ambas páginas. Con campo único no puedes; con many-to-many sí.
+Cómo modelarlo en Drizzle (preview)
+Tres tablas, no una:
+
+lawyers — datos del abogado (sin jurisdicción)
+jurisdictions — catálogo controlado por ti (NY, CA, TX, UK-England&Wales, ES, etc.) con slug, nombre, país, tipo (state/country/province)
+lawyer_jurisdictions — tabla puente con lawyer_id, jurisdiction_id, y campos extra útiles: bar_number, admitted_year, is_primary (para la jurisdicción principal del abogado, útil para ordenar resultados)
+
+El is_primary es el detalle que la mayoría olvida y luego necesita. Te permite que un abogado con NY + CA + DC se muestre como "Primary: New York" en su perfil pero aparezca en las búsquedas de los tres.
+Detalle adicional que vas a querer
+Considera también guardar el nivel de presencia en cada jurisdicción: licensed (barred y ejerciendo), licensed_inactive (barred pero no ejerciendo activamente ahí), serves (atiende clientes ahí pero no está barred — común en tax y advisory). Eso evita problemas legales/regulatorios si un abogado solo asesora pero no litiga en cierto estado, y le da matiz al directorio.
+Adelante con la pregunta 2.
