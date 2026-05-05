@@ -1,0 +1,18 @@
+Corrección honesta primero
+Lo de "Google le da peso a dominios exactos" — esto fue cierto hasta 2012. El EMD update de Google específicamente devaluó los exact match domains de baja calidad. Hoy cryptocurrencylawyers.com te da:
+
+Branding y CTR: la gente hace clic más fácil en un dominio que coincide con su búsqueda. Eso sí funciona y es medible.
+Trust visual: en SERPs y en compartir el link, transmite autoridad de nicho.
+Anchor text natural: cuando alguien linkea "cryptocurrency lawyers" como ancla, el dominio refuerza relevancia.
+
+Lo que no te da automáticamente es ranking. Un dominio EMD con contenido mediocre rankea peor hoy que uno branded con contenido excelente. La ventaja real está en lo que dijiste después: páginas de especialidad y ciudad bien construidas desde día uno. Eso es donde el dominio empieza a multiplicar, no a sustituir trabajo.
+Lo digo porque si entras al proyecto pensando "el dominio rankea solo", vas a invertir menos en lo que de verdad mueve la aguja, que es la arquitectura de contenido programático (combinaciones especialidad × jurisdicción × tipo de servicio) y schema markup correcto. Ahí sí te despegas.
+Sobre el plan
+El orden 1-2-3 está bien. El 4 (diseño frontend en paralelo con subagente) es donde tengo una observación: define el design system antes de generar pantallas, no en paralelo a la primera. Si arrancas pantallas sin tokens (colores, tipografía, espaciado, componentes base de Radix estilizados), terminas con 12 variantes de botón a las dos semanas. 30 minutos de tokens en Tailwind v4 (@theme directive) te ahorran un refactor doloroso después.
+Para un directorio de abogados de cripto, el tono visual importa: tiene que decir "serio + técnico + moderno" sin caer en (a) bufete tradicional acartonado ni (b) startup cripto neón. Bloomberg/Stripe/Linear de referencias, no Coinbase ni un sitio de despacho de los 2000s.
+Antes de generar el schema de Drizzle, necesito tres decisiones tuyas
+Estas afectan el modelo y son más fáciles de decidir ahora que después:
+
+¿Un abogado puede ejercer en múltiples jurisdicciones? (Sí, casi seguro — pensar en abogados US barred en NY + CA, o internacional). Esto implica tabla lawyer_jurisdictions (many-to-many), no un campo.
+¿Las "especialidades cripto" son lista cerrada que tú controlas, o el abogado escribe libre? Recomendación fuerte: lista cerrada, controlada por ti, con slugs estables (defi-litigation, token-launches, tax-compliance, nft-disputes, regulatory-sec, etc.). Esto es lo que te permite las páginas SEO programáticas. Si dejas free text, no hay /especialidad/defi-litigation/ rankeable.
+¿Modelo de negocio del directorio? Free listing + featured de pago, o solo pago, o curado por invitación. Esto cambia si el abogado se auto-registra (Clerk hace falta para todos) o solo el admin crea perfiles (Clerk solo para admin).
