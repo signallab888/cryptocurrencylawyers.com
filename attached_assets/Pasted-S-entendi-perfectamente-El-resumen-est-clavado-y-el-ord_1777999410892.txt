@@ -1,0 +1,31 @@
+Sí, entendió perfectamente. El resumen está clavado y el orden de construcción es correcto. Hay solo un detalle técnico pequeño que ajustar y un par de cosas que asegurar antes de que arranque.Lo que está perfecto (no toques):
+Diferenciación clara de qué cambia y qué no
+Reconoce que artifacts/crypto-lawyers se reemplaza manualmente — buena señal de que entiende el alcance
+Orden de construcción respeta dependencias (DB → schema → seed → OpenAPI → codegen → backend → frontend)
+output: 'hybrid' es la decisión correcta (estático por default, SSR donde se necesita)
+Un detalle técnico para corregirle:Astro 5 ya no usa output: 'hybrid' — lo deprecaron. Ahora todo es híbrido por default y se controla por página con export const prerender = true o false. Si te pone output: 'hybrid' en astro.config.mjs, el build te va a dar warning de deprecation.La config correcta en Astro 5:jsexport default defineConfig({
+  output: 'static', // o 'server' si quieres SSR como default
+  // hybrid ya no existe — se controla por página
+});Y en cada página dinámica que quiera SSR (búsqueda con filtros, admin), pones al inicio:jsexport const prerender = false; // SSR para esta páginaEn las páginas estáticas (perfil de abogado, especialidad, artículos):jsexport const prerender = true; // SSG, defaultOtras cosas que falta confirmar antes de que arranque:1. Adapter de Astro para SSR. Si vas a tener páginas SSR (búsqueda dinámica, admin), Astro necesita un adapter. Las opciones:
+@astrojs/node — para deploy en Node.js (Replit, VPS propio, Coolify) ← este es el que necesitas
+@astrojs/vercel — solo Vercel
+@astrojs/cloudflare — solo Cloudflare Pages
+Para Replit ahora y VPS propio después, Node adapter es el correcto. Es portable a cualquier servidor con Node.2. Tailwind v4 en Astro. No usa @astrojs/tailwind (esa integración era para v3). Para v4 usa el plugin oficial de Vite:js// astro.config.mjs
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+  vite: {
+    plugins: [tailwindcss()],
+  },
+});Y en tu CSS:css@import "tailwindcss";3. Configurar client: directives correctamente en islands. Esto importa para SEO y performance. Las opciones:
+client:load — JS carga al cargar la página (úsalo poco)
+client:idle — JS carga cuando el browser está idle (bueno para cosas no críticas)
+client:visible — JS carga cuando el componente entra al viewport (excelente para componentes below-the-fold)
+client:media={...} — JS carga según media query
+client:only="react" — el componente NO se renderiza en server, solo en client (úsalo para cosas que dependen de window/localStorage)
+Para tu directorio:
+
+Buscador en home: client:visible (no es above-the-fold crítico)
+Filtros en página de búsqueda: client:load (es la funcionalidad principal de esa página)
+Lead form: client:visible
+Modales y dropdowns: client:idle
