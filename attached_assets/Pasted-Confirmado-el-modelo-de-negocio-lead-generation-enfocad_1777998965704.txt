@@ -1,0 +1,71 @@
+Confirmado el modelo de negocio: lead generation enfocado a abogados de cripto + contenido SEO masivo. El directorio es el motor del SEO, los leads son la monetización principal, y los tiers de abogados son monetización secundaria.
+Validación de mercado (ya investigado):
+
+Competencia directa débil: CoinLedger tiene un directorio pobre (solo 10 nombres sin filtros), CoinCodex/CoinGape solo tienen artículos tipo "top 11", Chambers/Avvo son generalistas sin profundidad en sub-especialidades cripto.
+Honorarios altos en el nicho ($300-$800/hora, retainers $3K-$15K) → abogados pueden pagar leads caros.
+Queries transaccionales viables: "crypto lawyer", "SEC subpoena crypto lawyer", "crypto tax audit lawyer", "[ciudad] crypto attorney".
+Nadie domina la intersección especialidad × jurisdicción en cripto. Esa es la oportunidad.
+
+Schema de Drizzle (todas las tablas desde día uno):
+
+lawyers — campos: nombre, slug, foto, bio_corta, bio_larga, email_publico, telefono, website, linkedin, twitter, firm_name, years_experience, languages (array), status (draft / pending_review / published / suspended), tier (free / featured / premium), featured_until (timestamp nullable), claimed_by_user_id (nullable, FK a Clerk), created_by (admin / self_signup / claimed), created_at, updated_at
+jurisdictions — id, slug, name, country_code, type (state / country / province), is_active. Seed con 50 estados US + DC + países principales (UK, ES, MX, CA, AU, SG, CH) + entidad UE.
+lawyer_jurisdictions (puente many-to-many) — lawyer_id, jurisdiction_id, bar_number, admitted_year, is_primary, presence_level (licensed / licensed_inactive / serves)
+practice_areas (catálogo nivel 1) — id, slug, name, description. Seed: Regulatory & Compliance, Litigation & Enforcement, Tax, Transactional, IP, Criminal Defense, Estate Planning.
+specialties (catálogo nivel 2) — id, slug, name, description, practice_area_id (FK), seo_meta_title, seo_meta_description. Seed con 20-25 especialidades iniciales: sec-enforcement-defense, cftc-enforcement-defense, crypto-tax-compliance, crypto-tax-litigation, defi-protocol-counsel, token-launches-ico-ido, dao-formation-governance, nft-disputes, mica-compliance, stablecoin-regulation, exchange-licensing, aml-kyc-compliance, crypto-bankruptcy, crypto-fraud-recovery, crypto-asset-tracing, mining-operations-counsel, crypto-estate-planning, crypto-divorce-asset-division, web3-employment-token-comp, cross-border-crypto-transactions, smart-contract-legal-review, ofac-sanctions-compliance.
+lawyer_specialties (puente) — lawyer_id, specialty_id, years_experience, is_featured (para destacar 2-3 en la tarjeta de búsqueda)
+leads — el formulario que llena el cliente final. Campos: id, client_name, client_email, client_phone, case_type_specialty_id (FK), jurisdiction_id (FK), budget_range (enum: under_10k / 10k_50k / 50k_250k / 250k_plus / unknown), urgency (enum: immediate / weeks / planning), description (text), source_page (URL de donde llegó), status (new / qualified / sold / closed / spam), captcha_score, created_at
+lead_purchases — qué abogado compró qué lead. Campos: lead_id, lawyer_id, amount_paid, purchase_type (exclusive / shared), stripe_payment_id (nullable hasta que integremos Stripe), created_at
+articles — el contenido editorial SEO. Campos: id, slug, title, meta_title, meta_description, excerpt, content (MDX o text largo), practice_area_id (nullable), specialty_id (nullable), jurisdiction_id (nullable), status (draft / published), published_at, author_name, reading_time_minutes, created_at, updated_at
+newsletter_subscribers — email, source_page, confirmed (boolean), confirmation_token, created_at
+
+OpenAPI spec — endpoints prioritarios para fase 1:
+
+GET /lawyers — búsqueda con filtros: specialty (slug), jurisdiction (slug), presence_level, tier (para ordenar featured primero), language, paginación (page, limit), ordenamiento (relevance / years_experience / featured)
+GET /lawyers/{slug} — perfil individual completo con jurisdicciones y especialidades populated
+GET /specialties — listar con conteo de abogados por especialidad (para sidebar de filtros)
+GET /jurisdictions — listar con conteo de abogados por jurisdicción
+GET /practice-areas — listar con specialties anidadas
+POST /leads — crear lead desde formulario público (sin auth, con captcha de Cloudflare Turnstile)
+GET /admin/leads — listar leads (auth admin via Clerk)
+PATCH /admin/leads/{id} — actualizar status del lead
+GET /articles — listar con filtros por practice_area, specialty, jurisdiction
+GET /articles/{slug} — artículo individual
+POST /newsletter/subscribe — suscripción a newsletter
+
+Stack confirmado:
+
+Frontend: React 19 + Vite + Tailwind v4 + Wouter + TanStack Query v5 + Framer Motion + Radix UI + Lucide + React Hook Form + Zod
+Backend: Express 5 + Pino + CORS + Cookie Parser
+DB: PostgreSQL (Replit managed por ahora) + Drizzle ORM + drizzle-zod
+API contract: OpenAPI 3.1 escrito a mano en lib/api-spec/openapi.yaml, Orval genera cliente React Query y Zod schemas
+Validación de respuestas en backend con Zod cableada desde el inicio (cada handler valida su response antes de res.json())
+Auth: Clerk (solo admin en fase 1, abogados auto-claim en fase 2)
+Storage: AWS SDK apuntando a Replit Object Storage (portable a R2/S3 después)
+Deploy futuro: VPS propio con Coolify, frontend estático en Cloudflare Pages o mismo VPS
+
+Reglas de portabilidad (no romper nunca):
+
+Solo process.env.DATABASE_URL para conexión a DB
+Nada de @replit/database ni wrappers de Replit
+AWS SDK para storage, no SDK de Replit
+Clerk para auth, no Replit Auth
+Secrets en .env versionado como .env.example
+
+Plan de ejecución, en orden:
+
+Setup de monorepo con pnpm workspaces (lib/db, lib/api-spec, lib/api-client-react, lib/api-zod, artifacts/api-server, artifacts/crypto-lawyers)
+Schema completo de Drizzle con las 10 tablas
+Migrations generadas con drizzle-kit
+Seed data: practice_areas (7), specialties (22), jurisdictions (60+)
+OpenAPI spec con los 11 endpoints prioritarios
+Generar cliente y Zod con Orval
+Implementar handlers de Express con validación Zod de input y output
+Integrar Clerk para auth admin
+Frontend con design tokens primero (Tailwind v4 @theme directive). Referencias visuales: Stripe / Linear / Bloomberg. Tono serio + técnico + moderno. Nada de neón cripto ni bufete acartonado.
+Páginas frontend en orden: home, búsqueda con filtros, perfil de abogado, página de especialidad, página de especialidad × jurisdicción, página de jurisdicción, formulario "Find a lawyer" (lead capture), admin dashboard de leads, blog/articles
+Captura de leads con Cloudflare Turnstile
+Newsletter signup integrado con Resend o similar (decidir después)
+
+Stripe e integración de pagos por leads — fase 2, no ahora. El schema de lead_purchases ya lo contempla.
+Arrancamos por el paso 1: setup del monorepo y schema de Drizzle.
