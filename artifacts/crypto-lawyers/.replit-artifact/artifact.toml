@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Cryptocurrency Lawyers Directory"
+version = "1.0.0"
+id = "artifacts/crypto-lawyers"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23588
+
+[services.development]
+run = "pnpm --filter @workspace/crypto-lawyers run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/crypto-lawyers", "run", "build" ]
+publicDir = "artifacts/crypto-lawyers/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23588"
+BASE_PATH = "/"
