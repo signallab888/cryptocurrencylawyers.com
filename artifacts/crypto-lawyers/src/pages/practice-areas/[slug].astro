@@ -10,10 +10,23 @@ import {
 } from "../../lib/api";
 
 export async function getStaticPaths() {
+  // Paginate through all lawyers — API max is 100 per page
+  async function fetchAllLawyers(): Promise<LawyerItem[]> {
+    const all: LawyerItem[] = [];
+    let page = 1;
+    while (true) {
+      const { data, meta } = await listLawyers({ pageSize: 100, page });
+      all.push(...data);
+      if (page >= meta.totalPages || data.length === 0) break;
+      page++;
+    }
+    return all;
+  }
+
   // TWO parallel fetches for ALL practice-area pages — zero N+1
-  const [{ data: practiceAreas }, { data: allLawyers }] = await Promise.all([
+  const [{ data: practiceAreas }, allLawyers] = await Promise.all([
     listPracticeAreas(),
-    listLawyers({ pageSize: 200 }), // high ceiling — grouped in memory below
+    fetchAllLawyers(),
   ]);
 
   // Build practiceAreaId → slug lookup from nested specialties on each lawyer

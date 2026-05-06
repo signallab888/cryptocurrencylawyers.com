@@ -5,12 +5,16 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { listLawyers, getLawyerBySlug } from "../../lib/api";
 
 export async function getStaticPaths() {
-  // ONE fetch for ALL lawyer profile pages — zero N+1
-  const { data } = await listLawyers({ pageSize: 500 });
-  return data.map((l) => ({
-    params: { slug: l.slug },
-    props: { slug: l.slug },
-  }));
+  // Paginate through all lawyers — API max is 100 per page
+  const all: { slug: string }[] = [];
+  let page = 1;
+  while (true) {
+    const { data, meta } = await listLawyers({ pageSize: 100, page });
+    all.push(...data.map((l) => ({ slug: l.slug })));
+    if (page >= meta.totalPages || data.length === 0) break;
+    page++;
+  }
+  return all.map(({ slug }) => ({ params: { slug }, props: { slug } }));
 }
 
 interface Props { slug: string }
