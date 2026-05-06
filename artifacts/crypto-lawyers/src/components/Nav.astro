@@ -9,17 +9,17 @@ const navLinks = [
 const currentPath = Astro.url.pathname;
 ---
 
-<header class="sticky top-0 z-50 border-b border-[#27272a] bg-[#0a0a0a]/95 backdrop-blur-sm">
+<header class="sticky top-0 z-50 border-b border-border bg-bg-primary/95 backdrop-blur-sm">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <nav class="flex h-16 items-center justify-between">
       <!-- Logo -->
       <a href="/" class="flex items-center gap-2 group" aria-label="CryptocurrencyLawyers.com home">
-        <div class="flex h-8 w-8 items-center justify-center rounded bg-blue-800 text-white text-sm font-bold">
+        <div class="flex h-8 w-8 items-center justify-center rounded bg-accent text-white text-sm font-bold">
           CL
         </div>
-        <span class="hidden sm:block font-semibold text-[#fafafa] tracking-tight">
+        <span class="hidden sm:block font-semibold text-text-primary tracking-tight">
           CryptocurrencyLawyers
-          <span class="text-[#a1a1aa] font-normal">.com</span>
+          <span class="text-text-secondary font-normal">.com</span>
         </span>
       </a>
 
@@ -32,8 +32,8 @@ const currentPath = Astro.url.pathname;
               class:list={[
                 "px-3 py-2 rounded-md text-sm font-medium transition-colors",
                 currentPath.startsWith(link.href)
-                  ? "text-[#fafafa] bg-[#18181b]"
-                  : "text-[#a1a1aa] hover:text-[#fafafa] hover:bg-[#18181b]",
+                  ? "text-text-primary bg-surface"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface",
               ]}
             >
               {link.label}
@@ -46,13 +46,13 @@ const currentPath = Astro.url.pathname;
       <div class="flex items-center gap-3">
         <a
           href="/find-a-lawyer"
-          class="hidden sm:inline-flex items-center rounded-md bg-blue-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+          class="hidden sm:inline-flex items-center rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           Get Legal Help
         </a>
-        <!-- Mobile menu button (static for now) -->
+        <!-- Mobile menu button -->
         <button
-          class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-[#a1a1aa] hover:text-[#fafafa] hover:bg-[#18181b]"
+          class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-text-secondary hover:text-text-primary hover:bg-surface"
           aria-label="Open menu"
           id="mobile-menu-btn"
         >
@@ -63,14 +63,14 @@ const currentPath = Astro.url.pathname;
       </div>
     </nav>
 
-    <!-- Mobile menu (progressive enhancement) -->
+    <!-- Mobile menu -->
     <div class="hidden md:hidden" id="mobile-menu">
       <div class="space-y-1 pb-4">
         {
           navLinks.map((link) => (
             <a
               href={link.href}
-              class="block px-3 py-2 rounded-md text-sm font-medium text-[#a1a1aa] hover:text-[#fafafa] hover:bg-[#18181b]"
+              class="block px-3 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface"
             >
               {link.label}
             </a>
@@ -78,7 +78,7 @@ const currentPath = Astro.url.pathname;
         }
         <a
           href="/find-a-lawyer"
-          class="block mt-2 text-center rounded-md bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900"
+          class="block mt-2 text-center rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           Get Legal Help
         </a>

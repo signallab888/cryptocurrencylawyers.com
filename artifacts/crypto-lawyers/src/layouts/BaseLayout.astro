@@ -33,7 +33,7 @@ const jsonLdArray = jsonLd
     : [jsonLd]
   : [];
 
-const defaultJsonLd = {
+const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "CryptocurrencyLawyers.com",
@@ -45,6 +45,16 @@ const defaultJsonLd = {
     "query-input": "required name=search_term_string",
   },
 };
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "CryptocurrencyLawyers.com",
+  url: siteUrl,
+  logo: `${siteUrl}/favicon.svg`,
+  description: "Verified attorney directory specializing in cryptocurrency, blockchain, and digital asset law.",
+  sameAs: [],
+};
 ---
 
 <!doctype html>
@@ -53,6 +63,7 @@ const defaultJsonLd = {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0a0a0a" />
 
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
@@ -77,8 +88,18 @@ const defaultJsonLd = {
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- JSON-LD -->
-    <script type="application/ld+json" set:html={JSON.stringify(defaultJsonLd)} />
+    <!-- Google Fonts — preconnect first, then stylesheet (avoids blocking @import) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
+    />
+
+    <!-- JSON-LD: site-wide schemas -->
+    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    <!-- JSON-LD: page-specific schemas -->
     {
       jsonLdArray.map((schema) => (
         <script type="application/ld+json" set:html={JSON.stringify(schema)} />

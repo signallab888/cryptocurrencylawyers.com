@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const practiceAreas = [
@@ -102,7 +104,6 @@ const jsonLd = {
 >
   <!-- ── HERO ────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden">
-    <!-- Subtle radial glow -->
     <div
       class="pointer-events-none absolute inset-0"
       style="background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30,64,175,0.25) 0%, transparent 70%);"
@@ -110,17 +111,17 @@ const jsonLd = {
     </div>
 
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center">
-      <div class="inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#111111] px-4 py-1.5 text-xs font-medium text-[#a1a1aa] mb-8">
-        <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+      <div class="inline-flex items-center gap-2 rounded-full border border-border bg-bg-secondary px-4 py-1.5 text-xs font-medium text-text-secondary mb-8">
+        <span class="h-1.5 w-1.5 rounded-full bg-accent-bright"></span>
         Verified attorneys · Updated weekly
       </div>
 
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#fafafa] leading-tight tracking-tight max-w-4xl mx-auto">
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary leading-tight tracking-tight max-w-4xl mx-auto">
         Find the Right
-        <span class="text-blue-500"> Cryptocurrency Lawyer</span>
+        <span class="text-accent-bright"> Cryptocurrency Lawyer</span>
       </h1>
 
-      <p class="mt-6 text-lg text-[#a1a1aa] max-w-2xl mx-auto leading-relaxed">
+      <p class="mt-6 text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
         Connect with attorneys who specialize in blockchain regulation, DeFi, SEC enforcement,
         crypto tax, and digital asset litigation — not generalists learning on your time.
       </p>
@@ -128,7 +129,7 @@ const jsonLd = {
       <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
         <a
           href="/lawyers"
-          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-blue-800 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-900"
+          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-accent px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-accent-hover"
         >
           Browse Lawyers
           <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -137,7 +138,7 @@ const jsonLd = {
         </a>
         <a
           href="/find-a-lawyer"
-          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-[#27272a] bg-[#111111] px-8 py-3.5 text-base font-semibold text-[#fafafa] transition-colors hover:bg-[#18181b]"
+          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-border bg-bg-secondary px-8 py-3.5 text-base font-semibold text-text-primary transition-colors hover:bg-surface"
         >
           Get Free Match
         </a>
@@ -145,23 +146,23 @@ const jsonLd = {
 
       <!-- Trust bar -->
       <div class="mt-14 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-sm">
-        <div class="flex items-center gap-2 text-[#a1a1aa]">
-          <svg class="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-center gap-2 text-text-secondary">
+          <svg class="h-4 w-4 text-accent-bright" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          <span><strong class="text-[#fafafa]">50+</strong> Vetted Attorneys</span>
+          <span><strong class="text-text-primary">50+</strong> Vetted Attorneys</span>
         </div>
-        <div class="flex items-center gap-2 text-[#a1a1aa]">
-          <svg class="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-center gap-2 text-text-secondary">
+          <svg class="h-4 w-4 text-accent-bright" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          <span><strong class="text-[#fafafa]">51</strong> Jurisdictions</span>
+          <span><strong class="text-text-primary">51</strong> Jurisdictions</span>
         </div>
-        <div class="flex items-center gap-2 text-[#a1a1aa]">
-          <svg class="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-center gap-2 text-text-secondary">
+          <svg class="h-4 w-4 text-accent-bright" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          <span><strong class="text-[#fafafa]">7</strong> Practice Areas</span>
+          <span><strong class="text-text-primary">7</strong> Practice Areas</span>
         </div>
       </div>
     </div>
@@ -170,8 +171,8 @@ const jsonLd = {
   <!-- ── PRACTICE AREAS ─────────────────────────────────────────────────── -->
   <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
     <div class="text-center mb-12">
-      <h2 class="text-3xl font-bold text-[#fafafa]">Every Area of Crypto Law, Covered</h2>
-      <p class="mt-3 text-[#a1a1aa]">
+      <h2 class="text-3xl font-bold text-text-primary">Every Area of Crypto Law, Covered</h2>
+      <p class="mt-3 text-text-secondary">
         Browse by the legal issue you're facing — every category has verified specialists.
       </p>
     </div>
@@ -181,9 +182,9 @@ const jsonLd = {
         practiceAreas.map((area) => (
           <a
             href={`/practice-areas/${area.slug}`}
-            class="group relative rounded-xl border border-[#27272a] bg-[#111111] p-6 transition-all hover:border-blue-800/60 hover:bg-[#111827]"
+            class="group relative rounded-xl border border-border bg-bg-secondary p-6 transition-all hover:border-accent/60 hover:bg-surface-accent"
           >
-            <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-800/20 text-blue-400">
+            <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-accent-muted">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 {area.icon === "shield" && (
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -208,11 +209,11 @@ const jsonLd = {
                 )}
               </svg>
             </div>
-            <h3 class="font-semibold text-[#fafafa] mb-2 group-hover:text-blue-400 transition-colors">
+            <h3 class="font-semibold text-text-primary mb-2 group-hover:text-accent-muted transition-colors">
               {area.name}
             </h3>
-            <p class="text-sm text-[#a1a1aa] leading-relaxed">{area.description}</p>
-            <div class="mt-4 flex items-center text-xs font-medium text-blue-500">
+            <p class="text-sm text-text-secondary leading-relaxed">{area.description}</p>
+            <div class="mt-4 flex items-center text-xs font-medium text-accent-bright">
               View lawyers
               <svg class="ml-1 h-3 w-3 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -225,25 +226,24 @@ const jsonLd = {
   </section>
 
   <!-- ── HOW IT WORKS ───────────────────────────────────────────────────── -->
-  <section class="bg-[#111111] border-y border-[#27272a]">
+  <section class="bg-bg-secondary border-y border-border">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
       <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-[#fafafa]">How It Works</h2>
-        <p class="mt-3 text-[#a1a1aa]">From describing your issue to your first consultation in minutes.</p>
+        <h2 class="text-3xl font-bold text-text-primary">How It Works</h2>
+        <p class="mt-3 text-text-secondary">From describing your issue to your first consultation in minutes.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-        <!-- Connector line (desktop) -->
-        <div class="hidden md:block absolute top-8 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-[#27272a] to-transparent"></div>
+        <div class="hidden md:block absolute top-8 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
 
         {
           steps.map((step) => (
             <div class="flex flex-col items-center text-center">
-              <div class="flex h-16 w-16 items-center justify-center rounded-full border-2 border-blue-800/40 bg-blue-800/10 text-2xl font-bold text-blue-400 mb-6">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full border-2 border-accent/40 bg-accent/10 text-2xl font-bold text-accent-muted mb-6">
                 {step.number}
               </div>
-              <h3 class="text-lg font-semibold text-[#fafafa] mb-2">{step.title}</h3>
-              <p class="text-sm text-[#a1a1aa] leading-relaxed max-w-xs">{step.body}</p>
+              <h3 class="text-lg font-semibold text-text-primary mb-2">{step.title}</h3>
+              <p class="text-sm text-text-secondary leading-relaxed max-w-xs">{step.body}</p>
             </div>
           ))
         }
@@ -252,7 +252,7 @@ const jsonLd = {
       <div class="text-center mt-12">
         <a
           href="/find-a-lawyer"
-          class="inline-flex items-center justify-center rounded-lg bg-blue-800 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-900"
+          class="inline-flex items-center justify-center rounded-lg bg-accent px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-accent-hover"
         >
           Start Your Match
         </a>
@@ -264,16 +264,16 @@ const jsonLd = {
   <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
       <div>
-        <h2 class="text-3xl font-bold text-[#fafafa] leading-tight">
+        <h2 class="text-3xl font-bold text-text-primary leading-tight">
           Why a Crypto-Specialist?<br />
-          <span class="text-[#a1a1aa] font-normal text-2xl">Not just any lawyer will do.</span>
+          <span class="text-text-secondary font-normal text-2xl">Not just any lawyer will do.</span>
         </h2>
-        <p class="mt-4 text-[#a1a1aa] leading-relaxed">
+        <p class="mt-4 text-text-secondary leading-relaxed">
           Cryptocurrency cases involve overlapping regulatory agencies, novel legal theories, and rapidly
           changing law. A generalist who handled your neighbor's DUI is not equipped for an SEC Wells Notice
           or a DeFi protocol enforcement action.
         </p>
-        <a href="/lawyers" class="mt-8 inline-flex items-center text-sm font-medium text-blue-400 hover:text-blue-300">
+        <a href="/lawyers" class="mt-8 inline-flex items-center text-sm font-medium text-accent-muted hover:text-accent-light">
           Browse the directory
           <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -284,10 +284,10 @@ const jsonLd = {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {
           whyPoints.map((point) => (
-            <div class="rounded-xl border border-[#27272a] bg-[#111111] p-5">
-              <div class="mb-2 h-2 w-8 rounded-full bg-blue-800/60"></div>
-              <h3 class="font-semibold text-[#fafafa] text-sm mb-1">{point.title}</h3>
-              <p class="text-xs text-[#a1a1aa] leading-relaxed">{point.body}</p>
+            <div class="rounded-xl border border-border bg-bg-secondary p-5">
+              <div class="mb-2 h-2 w-8 rounded-full bg-accent/60"></div>
+              <h3 class="font-semibold text-text-primary text-sm mb-1">{point.title}</h3>
+              <p class="text-xs text-text-secondary leading-relaxed">{point.body}</p>
             </div>
           ))
         }
@@ -297,25 +297,27 @@ const jsonLd = {
 
   <!-- ── BOTTOM CTA ─────────────────────────────────────────────────────── -->
   <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-24">
-    <div class="rounded-2xl border border-blue-800/40 bg-gradient-to-br from-blue-800/20 to-transparent p-10 text-center"
-         style="background-image: radial-gradient(ellipse 100% 100% at 50% 100%, rgba(30,64,175,0.15) 0%, transparent 70%);">
-      <h2 class="text-3xl font-bold text-[#fafafa] mb-4">
+    <div
+      class="rounded-2xl border border-accent/40 p-10 text-center"
+      style="background-image: radial-gradient(ellipse 100% 100% at 50% 100%, rgba(30,64,175,0.15) 0%, transparent 70%);"
+    >
+      <h2 class="text-3xl font-bold text-text-primary mb-4">
         Facing a Crypto Legal Issue?
       </h2>
-      <p class="text-[#a1a1aa] max-w-xl mx-auto mb-8">
+      <p class="text-text-secondary max-w-xl mx-auto mb-8">
         Describe your situation and we'll match you with the right specialist — no spam,
         no obligation. Many attorneys offer free initial consultations.
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
         <a
           href="/find-a-lawyer"
-          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-blue-800 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-900"
+          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-accent px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-accent-hover"
         >
           Get Free Match
         </a>
         <a
           href="/lawyers"
-          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-[#27272a] px-8 py-3.5 text-base font-semibold text-[#fafafa] transition-colors hover:bg-[#111111]"
+          class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg border border-border px-8 py-3.5 text-base font-semibold text-text-primary transition-colors hover:bg-bg-secondary"
         >
           Browse Directory
         </a>
