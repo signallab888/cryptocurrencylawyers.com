@@ -8,7 +8,9 @@ Admin endpoints (prefixed /admin) require Clerk JWT authentication.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ErrorResponse } from "./errorResponse";
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * Invalid request body or query parameters
+ */
+export type BadRequestResponse = ErrorResponse;

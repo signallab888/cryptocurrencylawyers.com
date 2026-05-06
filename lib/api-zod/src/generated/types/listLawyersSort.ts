@@ -9,6 +9,11 @@ Admin endpoints (prefixed /admin) require Clerk JWT authentication.
  * OpenAPI spec version: 1.0.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListLawyersSort =
+  (typeof ListLawyersSort)[keyof typeof ListLawyersSort];
+
+export const ListLawyersSort = {
+  tier: "tier",
+  name: "name",
+  yearsExperience: "yearsExperience",
+} as const;

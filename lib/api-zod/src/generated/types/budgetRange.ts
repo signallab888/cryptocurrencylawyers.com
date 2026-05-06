@@ -9,6 +9,12 @@ Admin endpoints (prefixed /admin) require Clerk JWT authentication.
  * OpenAPI spec version: 1.0.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type BudgetRange = (typeof BudgetRange)[keyof typeof BudgetRange];
+
+export const BudgetRange = {
+  under_10k: "under_10k",
+  "10k_50k": "10k_50k",
+  "50k_250k": "50k_250k",
+  "250k_plus": "250k_plus",
+  unknown: "unknown",
+} as const;

@@ -8,7 +8,9 @@ Admin endpoints (prefixed /admin) require Clerk JWT authentication.
 
  * OpenAPI spec version: 1.0.0
  */
+import type { SpecialtySummary } from "./specialtySummary";
 
-export interface HealthStatus {
-  status: string;
-}
+export type LawyerSpecialtyItem = SpecialtySummary & {
+  yearsExperience?: number | null;
+  isFeatured?: boolean;
+};

@@ -176,9 +176,18 @@ components:
         presenceLevel:  { $ref: "#/components/schemas/PresenceLevel" }
         barStatus:      { $ref: "#/components/schemas/BarStatus" }
 
+    # ── Lawyer Specialty (with join fields) ──
+    LawyerSpecialtyItem:
+      allOf:
+        - $ref: "#/components/schemas/SpecialtySummary"
+        - type: object
+          properties:
+            yearsExperience: { type: integer, nullable: true }
+            isFeatured:      { type: boolean }
+
     LawyerListItem:
       type: object
-      required: [id, slug, name, tier, status, languages, acceptsCryptoPayment, freeConsultation]
+      required: [id, slug, name, tier, languages, acceptsCryptoPayment, freeConsultation]
       properties:
         id:                   { type: integer, example: 42 }
         slug:                 { type: string, example: "jane-doe-new-york" }
@@ -196,13 +205,12 @@ components:
         acceptsCryptoPayment: { type: boolean }
         freeConsultation:     { type: boolean }
         tier:                 { $ref: "#/components/schemas/LawyerTier" }
-        status:               { $ref: "#/components/schemas/LawyerStatus" }
         jurisdictions:
           type: array
           items: { $ref: "#/components/schemas/LawyerJurisdictionSummary" }
         specialties:
           type: array
-          items: { $ref: "#/components/schemas/SpecialtySummary" }
+          items: { $ref: "#/components/schemas/LawyerSpecialtyItem" }
 
     LawyerProfile:
       allOf:
@@ -213,9 +221,6 @@ components:
             linkedin:          { type: string, format: uri, nullable: true }
             twitter:           { type: string, nullable: true }
             profileViewsCount: { type: integer }
-            featuredUntil:     { type: string, format: date-time, nullable: true }
-            createdAt:         { type: string, format: date-time }
-            updatedAt:         { type: string, format: date-time }
 
     # ── Leads ──
     LeadCreate:
@@ -230,6 +235,10 @@ components:
         budgetRange:         { $ref: "#/components/schemas/BudgetRange" }
         urgency:             { $ref: "#/components/schemas/Urgency" }
         description:         { type: string, maxLength: 5000, nullable: true }
+        sourcePage:          { type: string, nullable: true, description: "URL where the form was submitted" }
+        utmSource:           { type: string, nullable: true }
+        utmMedium:           { type: string, nullable: true }
+        utmCampaign:         { type: string, nullable: true }
         turnstileToken:      { type: string, description: "Cloudflare Turnstile response token" }
 
     LeadResponse:
@@ -365,6 +374,15 @@ paths:
         - name: pageSize
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: practiceAreaSlug
+          in: query
+          schema: { type: string }
+        - name: acceptsCryptoPayment
+          in: query
+          schema: { type: boolean }
+        - name: freeConsultation
+          in: query
+          schema: { type: boolean }
         - name: sort
           in: query
           schema: { type: string, enum: [tier, name, yearsExperience], default: tier }
