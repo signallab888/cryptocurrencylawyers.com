@@ -1,0 +1,312 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  listJurisdictions,
+  listSpecialties,
+  listLawyers,
+  type JurisdictionItem,
+  type SpecialtyItem,
+  type LawyerItem,
+} from "../../lib/api";
+
+export async function getStaticPaths() {
+  // TWO parallel fetches for ALL jurisdiction pages — zero N+1
+  const [{ data: jurisdictions }, { data: specialties }] = await Promise.all([
+    listJurisdictions(),
+    listSpecialties(),
+  ]);
+
+  return jurisdictions.map((j) => ({
+    params: { slug: j.slug },
+    props: { jurisdiction: j, specialties },
+  }));
+}
+
+interface Props {
+  jurisdiction: JurisdictionItem;
+  specialties: SpecialtyItem[];
+}
+
+const { jurisdiction, specialties } = Astro.props;
+
+// Fetch lawyers for this jurisdiction at build time
+const { data: lawyers, meta } = await listLawyers({
+  jurisdictionSlug: jurisdiction.slug,
+  pageSize: 12,
+});
+
+const siteUrl = "https://www.cryptocurrencylawyers.com";
+
+// Build specialty-count map from lawyers' nested specialties
+const specialtyCountMap = new Map<number, number>();
+for (const lawyer of lawyers) {
+  for (const s of lawyer.specialties ?? []) {
+    specialtyCountMap.set(s.id, (specialtyCountMap.get(s.id) ?? 0) + 1);
+  }
+}
+
+// Specialties present in this jurisdiction (with lawyer counts)
+const localSpecialties = specialties
+  .filter((s) => specialtyCountMap.has(s.id))
+  .sort((a, b) => (specialtyCountMap.get(b.id) ?? 0) - (specialtyCountMap.get(a.id) ?? 0));
+
+const lawyerCount = meta.total;
+const jurisdictionLabel =
+  jurisdiction.type === "country"
+    ? jurisdiction.name
+    : `${jurisdiction.name}${jurisdiction.countryCode ? `, ${jurisdiction.countryCode}` : ""}`;
+
+const title = `Cryptocurrency Lawyers in ${jurisdiction.name} | Verified Attorneys`;
+const description = `Find ${lawyerCount > 0 ? `${lawyerCount}+` : "verified"} cryptocurrency lawyers in ${jurisdictionLabel}. Browse vetted attorneys specializing in blockchain, DeFi, crypto tax, and digital asset litigation.`;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, item: { "@id": siteUrl, name: "Home" } },
+    {
+      "@type": "ListItem",
+      position: 2,
+      item: { "@id": `${siteUrl}/jurisdictions`, name: "Jurisdictions" },
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      item: {
+        "@id": `${siteUrl}/jurisdictions/${jurisdiction.slug}`,
+        name: jurisdiction.name,
+      },
+    },
+  ],
+};
+
+const placeSchema = {
+  "@context": "https://schema.org",
+  "@type": "LegalService",
+  name: `Cryptocurrency Lawyers in ${jurisdiction.name}`,
+  description,
+  url: `${siteUrl}/jurisdictions/${jurisdiction.slug}`,
+  areaServed: {
+    "@type": jurisdiction.type === "country" ? "Country" : "AdministrativeArea",
+    name: jurisdiction.name,
+    ...(jurisdiction.countryCode ? { containedInPlace: { "@type": "Country", identifier: jurisdiction.countryCode } } : {}),
+  },
+  provider: { "@type": "Organization", name: "CryptocurrencyLawyers.com", url: siteUrl },
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={`/jurisdictions/${jurisdiction.slug}`}
+  jsonLd={[breadcrumbSchema, placeSchema]}
+>
+  <!-- ── BREADCRUMB ──────────────────────────────────────────────────────── -->
+  <nav class="border-b border-border bg-bg-secondary" aria-label="Breadcrumb">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <ol class="flex items-center gap-2 text-sm text-text-secondary">
+        <li><a href="/" class="hover:text-text-primary transition-colors">Home</a></li>
+        <li class="text-border">/</li>
+        <li><a href="/jurisdictions" class="hover:text-text-primary transition-colors">Jurisdictions</a></li>
+        <li class="text-border">/</li>
+        <li class="text-text-primary font-medium">{jurisdiction.name}</li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div
+      class="pointer-events-none absolute inset-0"
+      style="background: radial-gradient(ellipse 60% 60% at 50% 0%, rgba(30,64,175,0.15) 0%, transparent 70%);"
+    />
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <div class="inline-flex items-center gap-2 rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text-secondary mb-5">
+        {jurisdiction.type === "state" ? "US State" : jurisdiction.type === "province" ? "Province" : "Country"}
+        {
+          jurisdiction.countryCode && jurisdiction.type !== "country" && (
+            <span class="text-accent-bright">· {jurisdiction.countryCode}</span>
+          )
+        }
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold text-text-primary leading-tight max-w-3xl">
+        Cryptocurrency Lawyers<br />
+        <span class="text-accent-bright">in {jurisdiction.name}</span>
+      </h1>
+      <p class="mt-5 text-lg text-text-secondary max-w-2xl leading-relaxed">
+        {
+          lawyerCount > 0
+            ? `${lawyerCount} verified ${lawyerCount === 1 ? "attorney" : "attorneys"} licensed or actively serving clients in ${jurisdiction.name}.`
+            : `Browse verified cryptocurrency attorneys who serve clients in ${jurisdiction.name}, including remote and cross-border representation.`
+        }
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={`/lawyers?jurisdictionSlug=${jurisdiction.slug}`}
+          class="inline-flex items-center rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+        >
+          Browse {jurisdiction.name} Lawyers
+        </a>
+        <a
+          href="/find-a-lawyer"
+          class="inline-flex items-center rounded-lg border border-border px-6 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:bg-surface"
+        >
+          Get Matched
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 space-y-20">
+
+    <!-- ── LAWYERS GRID ──────────────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-bold text-text-primary">
+            Attorneys in {jurisdiction.name}
+          </h2>
+          {
+            lawyerCount > 0 && (
+              <p class="text-text-secondary mt-1 text-sm">
+                {lawyerCount} verified {lawyerCount === 1 ? "attorney" : "attorneys"}
+              </p>
+            )
+          }
+        </div>
+        {
+          lawyerCount > 12 && (
+            <a
+              href={`/lawyers?jurisdictionSlug=${jurisdiction.slug}`}
+              class="hidden sm:inline-flex items-center text-sm font-medium text-accent-muted hover:text-accent-light"
+            >
+              View all {lawyerCount}
+              <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          )
+        }
+      </div>
+
+      {
+        lawyers.length === 0 ? (
+          <div class="rounded-xl border border-border bg-bg-secondary p-10 text-center">
+            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
+              <svg class="h-6 w-6 text-accent-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-text-primary mb-2">No Attorneys Listed Yet</h3>
+            <p class="text-sm text-text-secondary max-w-sm mx-auto mb-6">
+              We're expanding our {jurisdiction.name} attorney network. Submit your details and we'll reach out when specialists are available.
+            </p>
+            <a href="/find-a-lawyer" class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover">
+              Get Notified
+            </a>
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {lawyers.map((lawyer) => (
+              <a
+                href={`/lawyers/${lawyer.slug}`}
+                class="group rounded-xl border border-border bg-bg-secondary p-5 transition-all hover:border-accent/40 hover:bg-surface-accent"
+              >
+                <div class="flex items-start gap-3 mb-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent-muted font-bold text-sm">
+                    {lawyer.name.charAt(0)}
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="font-semibold text-text-primary group-hover:text-accent-muted truncate text-sm">{lawyer.name}</h3>
+                    {lawyer.firmName && <p class="text-xs text-text-secondary truncate">{lawyer.firmName}</p>}
+                    {lawyer.locationCity && (
+                      <p class="text-xs text-text-muted">{lawyer.locationCity}{lawyer.locationCountryCode ? `, ${lawyer.locationCountryCode}` : ""}</p>
+                    )}
+                  </div>
+                </div>
+                {lawyer.bioShort && (
+                  <p class="text-xs text-text-secondary leading-relaxed line-clamp-3 mb-3">{lawyer.bioShort}</p>
+                )}
+                <div class="flex flex-wrap gap-1.5">
+                  {(lawyer.jurisdictions ?? [])
+                    .filter((j) => j.slug === jurisdiction.slug)
+                    .map((j) => (
+                      <span class="rounded-full border border-border px-2 py-0.5 text-xs text-text-secondary capitalize">
+                        {j.presenceLevel.replace("_", " ")}
+                      </span>
+                    ))}
+                  {lawyer.freeConsultation && (
+                    <span class="rounded-full bg-green-900/30 px-2 py-0.5 text-xs text-green-400">Free consult</span>
+                  )}
+                  {lawyer.acceptsCryptoPayment && (
+                    <span class="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-muted">Crypto pay</span>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <!-- ── BY SPECIALTY (cross-links) ───────────────────────────────────── -->
+    <section>
+      <h2 class="text-xl font-bold text-text-primary mb-2">
+        Cryptocurrency Law by Specialty in {jurisdiction.name}
+      </h2>
+      <p class="text-text-secondary text-sm mb-8">
+        Find attorneys focused on specific areas of crypto law who serve {jurisdiction.name} clients.
+      </p>
+
+      {
+        localSpecialties.length > 0 ? (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {localSpecialties.map((s) => (
+              <a
+                href={`/lawyers?specialtySlug=${s.slug}&jurisdictionSlug=${jurisdiction.slug}`}
+                class="group flex items-center justify-between rounded-lg border border-border bg-bg-secondary px-4 py-3 transition-all hover:border-accent/40 hover:bg-surface-accent"
+              >
+                <span class="text-sm font-medium text-text-secondary group-hover:text-text-primary">{s.name}</span>
+                <span class="ml-2 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent-muted">
+                  {specialtyCountMap.get(s.id) ?? 0}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {specialties.slice(0, 9).map((s) => (
+              <a
+                href={`/lawyers?specialtySlug=${s.slug}&jurisdictionSlug=${jurisdiction.slug}`}
+                class="group flex items-center rounded-lg border border-border bg-bg-secondary px-4 py-3 transition-all hover:border-accent/40 hover:bg-surface-accent"
+              >
+                <span class="text-sm font-medium text-text-secondary group-hover:text-text-primary">{s.name} in {jurisdiction.name}</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <!-- ── CTA ──────────────────────────────────────────────────────────── -->
+    <section>
+      <div class="rounded-2xl border border-accent/40 p-8 text-center"
+           style="background-image: radial-gradient(ellipse 80% 80% at 50% 100%, rgba(30,64,175,0.12) 0%, transparent 70%);">
+        <h2 class="text-2xl font-bold text-text-primary mb-3">
+          Need a Crypto Lawyer in {jurisdiction.name}?
+        </h2>
+        <p class="text-text-secondary max-w-lg mx-auto mb-6 text-sm">
+          Describe your situation — jurisdiction, specialty, and urgency — and we'll match you with the right attorney.
+        </p>
+        <a
+          href="/find-a-lawyer"
+          class="inline-flex items-center rounded-lg bg-accent px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+        >
+          Get Free Match
+        </a>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

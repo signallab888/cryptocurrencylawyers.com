@@ -1,0 +1,295 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  listPracticeAreas,
+  listLawyers,
+  type PracticeAreaItem,
+  type LawyerItem,
+} from "../../lib/api";
+
+export async function getStaticPaths() {
+  // TWO parallel fetches for ALL practice-area pages — zero N+1
+  const [{ data: practiceAreas }, { data: allLawyers }] = await Promise.all([
+    listPracticeAreas(),
+    listLawyers({ pageSize: 200 }), // high ceiling — grouped in memory below
+  ]);
+
+  // Build practiceAreaId → slug lookup from nested specialties on each lawyer
+  const paIdToSlug = new Map(practiceAreas.map((pa) => [pa.id, pa.slug]));
+
+  // Group lawyers by practice area (a lawyer can appear in multiple areas)
+  const lawyersByPASlug = new Map<string, LawyerItem[]>();
+  for (const lawyer of allLawyers) {
+    const seen = new Set<string>();
+    for (const spec of lawyer.specialties ?? []) {
+      const paSlug = paIdToSlug.get(spec.practiceAreaId);
+      if (paSlug && !seen.has(paSlug)) {
+        seen.add(paSlug);
+        const arr = lawyersByPASlug.get(paSlug) ?? [];
+        arr.push(lawyer);
+        lawyersByPASlug.set(paSlug, arr);
+      }
+    }
+  }
+
+  return practiceAreas.map((pa) => ({
+    params: { slug: pa.slug },
+    props: {
+      practiceArea: pa,
+      lawyers: (lawyersByPASlug.get(pa.slug) ?? []).slice(0, 3),
+    },
+  }));
+}
+
+interface Props {
+  practiceArea: PracticeAreaItem;
+  lawyers: LawyerItem[];
+}
+
+const { practiceArea, lawyers } = Astro.props;
+
+const siteUrl = "https://www.cryptocurrencylawyers.com";
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, item: { "@id": siteUrl, name: "Home" } },
+    {
+      "@type": "ListItem",
+      position: 2,
+      item: { "@id": `${siteUrl}/practice-areas`, name: "Practice Areas" },
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      item: {
+        "@id": `${siteUrl}/practice-areas/${practiceArea.slug}`,
+        name: practiceArea.name,
+      },
+    },
+  ],
+};
+
+const legalServiceSchema = {
+  "@context": "https://schema.org",
+  "@type": "LegalService",
+  name: `${practiceArea.name} — Cryptocurrency Lawyers`,
+  description: practiceArea.description ?? undefined,
+  url: `${siteUrl}/practice-areas/${practiceArea.slug}`,
+  serviceType: practiceArea.name,
+  areaServed: "Worldwide",
+  provider: { "@type": "Organization", name: "CryptocurrencyLawyers.com", url: siteUrl },
+};
+
+const title = `${practiceArea.name} Lawyers — Cryptocurrency Legal Specialists`;
+const description = practiceArea.description
+  ? `${practiceArea.description} Browse verified ${practiceArea.name.toLowerCase()} attorneys with ${practiceArea.specialties?.length ?? 0} sub-specialties on CryptocurrencyLawyers.com.`
+  : `Find verified cryptocurrency lawyers specializing in ${practiceArea.name.toLowerCase()}. Connect with specialists across all jurisdictions.`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={`/practice-areas/${practiceArea.slug}`}
+  jsonLd={[breadcrumbSchema, legalServiceSchema]}
+>
+  <!-- ── BREADCRUMB ──────────────────────────────────────────────────────── -->
+  <nav class="border-b border-border bg-bg-secondary" aria-label="Breadcrumb">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <ol class="flex items-center gap-2 text-sm text-text-secondary">
+        <li><a href="/" class="hover:text-text-primary transition-colors">Home</a></li>
+        <li class="text-border">/</li>
+        <li><a href="/practice-areas" class="hover:text-text-primary transition-colors">Practice Areas</a></li>
+        <li class="text-border">/</li>
+        <li class="text-text-primary font-medium">{practiceArea.name}</li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div
+      class="pointer-events-none absolute inset-0"
+      style="background: radial-gradient(ellipse 60% 60% at 50% 0%, rgba(30,64,175,0.18) 0%, transparent 70%);"
+    />
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+      <div class="inline-flex items-center gap-2 rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text-secondary mb-6">
+        Practice Area
+        {
+          (practiceArea.specialties?.length ?? 0) > 0 && (
+            <span class="text-accent-bright">
+              · {practiceArea.specialties!.length} sub-specialties
+            </span>
+          )
+        }
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold text-text-primary leading-tight max-w-3xl">
+        {practiceArea.name}
+        <span class="text-text-secondary font-normal text-3xl sm:text-4xl"> Lawyers</span>
+      </h1>
+      {
+        practiceArea.description && (
+          <p class="mt-5 text-lg text-text-secondary max-w-2xl leading-relaxed">
+            {practiceArea.description}
+          </p>
+        )
+      }
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={`/lawyers?practiceAreaSlug=${practiceArea.slug}`}
+          class="inline-flex items-center rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+        >
+          Browse All {practiceArea.name} Lawyers
+        </a>
+        <a
+          href="/find-a-lawyer"
+          class="inline-flex items-center rounded-lg border border-border px-6 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:bg-surface"
+        >
+          Get Matched
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 space-y-20">
+
+    <!-- ── SUB-SPECIALTIES ───────────────────────────────────────────────── -->
+    {
+      (practiceArea.specialties?.length ?? 0) > 0 && (
+        <section>
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Sub-Specialties</h2>
+          <p class="text-text-secondary mb-8">
+            Attorneys within {practiceArea.name} often focus on one or more of these specific areas.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {practiceArea.specialties!.map((s) => (
+              <a
+                href={`/specialties/${s.slug}`}
+                class="group rounded-xl border border-border bg-bg-secondary p-5 transition-all hover:border-accent/60 hover:bg-surface-accent"
+              >
+                <div class="flex items-start justify-between mb-3">
+                  <h3 class="font-semibold text-text-primary group-hover:text-accent-muted transition-colors text-sm leading-snug">
+                    {s.name}
+                  </h3>
+                  {(s.lawyerCount ?? 0) > 0 && (
+                    <span class="ml-2 shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent-muted">
+                      {s.lawyerCount}
+                    </span>
+                  )}
+                </div>
+                {s.description && (
+                  <p class="text-xs text-text-secondary leading-relaxed line-clamp-2">
+                    {s.description}
+                  </p>
+                )}
+                <div class="mt-3 flex items-center text-xs font-medium text-accent-bright">
+                  View lawyers
+                  <svg class="ml-1 h-3 w-3 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ── FEATURED LAWYERS ──────────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-bold text-text-primary">{practiceArea.name} Attorneys</h2>
+          <p class="text-text-secondary mt-1">Verified specialists ready to help.</p>
+        </div>
+        {
+          lawyers.length > 0 && (
+            <a
+              href={`/lawyers?practiceAreaSlug=${practiceArea.slug}`}
+              class="hidden sm:inline-flex items-center text-sm font-medium text-accent-muted hover:text-accent-light"
+            >
+              View all
+              <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          )
+        }
+      </div>
+
+      {
+        lawyers.length === 0 ? (
+          <div class="rounded-xl border border-border bg-bg-secondary p-10 text-center">
+            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
+              <svg class="h-6 w-6 text-accent-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-text-primary mb-2">Attorneys Coming Soon</h3>
+            <p class="text-sm text-text-secondary max-w-sm mx-auto mb-6">
+              We're onboarding {practiceArea.name.toLowerCase()} specialists. Submit your contact details and we'll match you when they're available.
+            </p>
+            <a href="/find-a-lawyer" class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover">
+              Get Notified
+            </a>
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {lawyers.map((lawyer) => (
+              <a
+                href={`/lawyers/${lawyer.slug}`}
+                class="group rounded-xl border border-border bg-bg-secondary p-5 transition-all hover:border-accent/40 hover:bg-surface-accent"
+              >
+                <div class="flex items-start gap-3 mb-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent-muted font-bold text-sm">
+                    {lawyer.name.charAt(0)}
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="font-semibold text-text-primary group-hover:text-accent-muted truncate text-sm">{lawyer.name}</h3>
+                    {lawyer.firmName && <p class="text-xs text-text-secondary truncate">{lawyer.firmName}</p>}
+                  </div>
+                </div>
+                {lawyer.bioShort && (
+                  <p class="text-xs text-text-secondary leading-relaxed line-clamp-3 mb-3">{lawyer.bioShort}</p>
+                )}
+                <div class="flex flex-wrap gap-1.5">
+                  {lawyer.freeConsultation && (
+                    <span class="rounded-full bg-green-900/30 px-2 py-0.5 text-xs text-green-400">Free consult</span>
+                  )}
+                  {lawyer.acceptsCryptoPayment && (
+                    <span class="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-muted">Crypto pay</span>
+                  )}
+                  {lawyer.tier === "featured" && (
+                    <span class="rounded-full bg-yellow-900/30 px-2 py-0.5 text-xs text-yellow-400">Featured</span>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <!-- ── BOTTOM CTA ────────────────────────────────────────────────────── -->
+    <section>
+      <div class="rounded-2xl border border-accent/40 p-8 text-center"
+           style="background-image: radial-gradient(ellipse 80% 80% at 50% 100%, rgba(30,64,175,0.12) 0%, transparent 70%);">
+        <h2 class="text-2xl font-bold text-text-primary mb-3">
+          Need a {practiceArea.name} Specialist?
+        </h2>
+        <p class="text-text-secondary max-w-lg mx-auto mb-6 text-sm">
+          Describe your situation and we'll match you with the right attorney — no obligation, no spam.
+        </p>
+        <a
+          href="/find-a-lawyer"
+          class="inline-flex items-center rounded-lg bg-accent px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+        >
+          Get Free Match
+        </a>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
