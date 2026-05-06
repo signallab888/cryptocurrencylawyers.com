@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { leadsTable, specialtiesTable, jurisdictionsTable } from "@workspace/db/schema";
 import {
@@ -71,13 +71,13 @@ router.get("/admin/leads", async (req, res, next) => {
         ? db
             .select({ id: specialtiesTable.id, name: specialtiesTable.name })
             .from(specialtiesTable)
-            .where(sql`${specialtiesTable.id} = ANY(${sql.raw(`ARRAY[${specialtyIds.join(",")}]::int[]`)})`)
+            .where(inArray(specialtiesTable.id, specialtyIds))
         : [],
       jurisdictionIds.length > 0
         ? db
             .select({ id: jurisdictionsTable.id, name: jurisdictionsTable.name })
             .from(jurisdictionsTable)
-            .where(sql`${jurisdictionsTable.id} = ANY(${sql.raw(`ARRAY[${jurisdictionIds.join(",")}]::int[]`)})`)
+            .where(inArray(jurisdictionsTable.id, jurisdictionIds))
         : [],
     ]);
 

@@ -1,0 +1,78 @@
+---
+const practiceAreas = [
+  { label: "Regulatory & Compliance", href: "/practice-areas/regulatory-compliance" },
+  { label: "Litigation & Enforcement", href: "/practice-areas/litigation-enforcement" },
+  { label: "Tax", href: "/practice-areas/tax" },
+  { label: "Transactional", href: "/practice-areas/transactional" },
+  { label: "Criminal Defense", href: "/practice-areas/criminal-defense" },
+  { label: "Estate Planning", href: "/practice-areas/estate-planning" },
+];
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-[#27272a] bg-[#111111] mt-20">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- Brand -->
+      <div class="lg:col-span-1">
+        <a href="/" class="flex items-center gap-2">
+          <div class="flex h-8 w-8 items-center justify-center rounded bg-blue-800 text-white text-sm font-bold">
+            CL
+          </div>
+          <span class="font-semibold text-[#fafafa] text-sm">CryptocurrencyLawyers.com</span>
+        </a>
+        <p class="mt-3 text-sm text-[#a1a1aa] leading-relaxed">
+          Connecting clients with verified attorneys specializing in cryptocurrency and blockchain law.
+        </p>
+      </div>
+
+      <!-- Practice Areas -->
+      <div>
+        <h3 class="text-sm font-semibold text-[#fafafa] mb-4">Practice Areas</h3>
+        <ul class="space-y-2">
+          {
+            practiceAreas.map((area) => (
+              <li>
+                <a href={area.href} class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">
+                  {area.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <!-- Directory -->
+      <div>
+        <h3 class="text-sm font-semibold text-[#fafafa] mb-4">Directory</h3>
+        <ul class="space-y-2">
+          <li><a href="/lawyers" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Find a Lawyer</a></li>
+          <li><a href="/jurisdictions" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">By Jurisdiction</a></li>
+          <li><a href="/specialties" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">By Specialty</a></li>
+          <li><a href="/articles" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Legal Articles</a></li>
+          <li><a href="/find-a-lawyer" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Get Matched</a></li>
+        </ul>
+      </div>
+
+      <!-- Legal -->
+      <div>
+        <h3 class="text-sm font-semibold text-[#fafafa] mb-4">Legal</h3>
+        <ul class="space-y-2">
+          <li><a href="/privacy" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Privacy Policy</a></li>
+          <li><a href="/terms" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Terms of Service</a></li>
+          <li><a href="/disclaimer" class="text-sm text-[#a1a1aa] hover:text-[#fafafa] transition-colors">Disclaimer</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-10 border-t border-[#27272a] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-xs text-[#71717a]">
+        &copy; {year} CryptocurrencyLawyers.com. All rights reserved.
+      </p>
+      <p class="text-xs text-[#71717a] text-center sm:text-right max-w-sm">
+        This directory is for informational purposes only. Nothing on this site constitutes legal advice or creates an attorney-client relationship.
+      </p>
+    </div>
+  </div>
+</footer>
