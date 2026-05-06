@@ -1,0 +1,393 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import {
+  listSpecialties,
+  listJurisdictions,
+  listLawyers,
+  type SpecialtyItem,
+  type JurisdictionItem,
+  type LawyerItem,
+} from "../../../lib/api";
+
+// ── Contextual data for thin-content mitigation ────────────────────────────────
+
+const JUR_CONTEXT: Record<string, { regulator: string; note: string }> = {
+  "california": {
+    regulator: "California Department of Financial Protection and Innovation (DFPI)",
+    note: "California's Digital Financial Assets Law (DFAL) introduced a comprehensive licensing framework for crypto businesses. The DFPI actively enforces consumer protection rules and has issued numerous actions against unregistered firms.",
+  },
+  "new-york": {
+    regulator: "New York Department of Financial Services (NYDFS)",
+    note: "New York's BitLicense regime is among the strictest in the US. Companies conducting virtual currency business in New York must obtain a BitLicense or qualify for a limited purpose trust charter from the NYDFS.",
+  },
+  "texas": {
+    regulator: "Texas Department of Banking",
+    note: "Texas has issued clear supervisory guidance on virtual currency exchanges and has emerged as a crypto-friendly state, attracting mining operations and blockchain companies with favorable energy costs.",
+  },
+  "florida": {
+    regulator: "Florida Office of Financial Regulation (OFR)",
+    note: "Florida has positioned itself as a US crypto hub. Miami hosts major blockchain conferences and the state has explored accepting cryptocurrency for state tax payments.",
+  },
+  "wyoming": {
+    regulator: "Wyoming Division of Banking",
+    note: "Wyoming leads in crypto-progressive legislation, with laws establishing Special Purpose Depository Institutions (SPDIs), legal recognition for DAOs, and clear property rights for digital assets.",
+  },
+  "illinois": {
+    regulator: "Illinois Department of Financial and Professional Regulation (IDFPR)",
+    note: "Illinois regulates money transmission including virtual currency under the Transmitters of Money Act. Chicago's CFTC has been active in crypto derivatives enforcement.",
+  },
+  "washington": {
+    regulator: "Washington State Department of Financial Institutions (DFI)",
+    note: "Washington requires money transmitter licenses for virtual currency businesses. The DFI has issued guidance clarifying crypto exchange licensing requirements.",
+  },
+  "united-kingdom": {
+    regulator: "Financial Conduct Authority (FCA)",
+    note: "The FCA requires crypto asset businesses operating in the UK to register under the Money Laundering Regulations. The UK has introduced a comprehensive crypto regulatory framework.",
+  },
+  "singapore": {
+    regulator: "Monetary Authority of Singapore (MAS)",
+    note: "Singapore's MAS regulates digital payment token services under the Payment Services Act. Singapore is a leading Asia-Pacific hub for blockchain and crypto businesses.",
+  },
+  "cayman-islands": {
+    regulator: "Cayman Islands Monetary Authority (CIMA)",
+    note: "The Cayman Islands offers favorable conditions for crypto funds and token issuers under the Virtual Asset (Service Providers) Act, making it a preferred jurisdiction for DeFi protocol foundations.",
+  },
+};
+
+const SPEC_CONTEXT: Record<string, string> = {
+  "sec-enforcement-defense": "SEC enforcement actions, Wells notices, subpoenas, and insider trading investigations involving digital asset securities",
+  "cryptocurrency-fraud": "crypto fraud recovery, scam investigations, rug-pull claims, and digital asset tracing using blockchain analytics",
+  "defi-regulation": "decentralized finance compliance, smart contract audits, liquidity pool regulation, and yield-farming tax treatment",
+  "nft-law": "NFT intellectual property rights, marketplace royalty disputes, creator licensing agreements, and fractionalized ownership structures",
+  "crypto-tax-compliance": "cryptocurrency tax reporting, IRS Form 8949 obligations, wash-sale analysis, and digital asset accounting methodologies",
+  "aml-kyc-compliance": "anti-money laundering program design, KYC implementation, Bank Secrecy Act (BSA) compliance, and FinCEN reporting for crypto businesses",
+  "token-offering": "token sales, securities law analysis, Reg D/A+ exemptions, SAFT agreements, and exchange listing compliance",
+  "smart-contract-disputes": "smart contract exploit liability, protocol governance disputes, bridge hack litigation, and on-chain arbitration frameworks",
+  "exchange-regulation": "cryptocurrency exchange licensing, MSB registration, state money transmitter licenses, and FinCEN compliance programs",
+  "blockchain-intellectual-property": "blockchain patent strategy, open-source licensing, protocol IP disputes, and decentralized software copyright",
+};
+
+function getSpecContext(slug: string): string {
+  return SPEC_CONTEXT[slug] ?? `${slug.replace(/-/g, " ")} matters for digital asset businesses and crypto investors`;
+}
+
+function getJurRegulator(slug: string): string {
+  return JUR_CONTEXT[slug]?.regulator ?? "the relevant financial and securities regulators";
+}
+
+function getJurNote(slug: string): string {
+  return JUR_CONTEXT[slug]?.note ?? `${slug.replace(/-/g, " ")} has specific requirements for digital asset businesses and cryptocurrency activities.`;
+}
+
+// ── getStaticPaths — 3 fetches total (zero N+1) ─────────────────────────────
+
+export async function getStaticPaths() {
+  // Fetch all lawyers across pages — API max is 100 per page
+  async function fetchAllLawyers(): Promise<LawyerItem[]> {
+    const all: LawyerItem[] = [];
+    let page = 1;
+    while (true) {
+      const { data, meta } = await listLawyers({ pageSize: 100, page });
+      all.push(...data);
+      if (page >= meta.totalPages || data.length === 0) break;
+      page++;
+    }
+    return all;
+  }
+
+  const [{ data: specialties }, { data: jurisdictions }, allLawyers] =
+    await Promise.all([listSpecialties(), listJurisdictions(), fetchAllLawyers()]);
+
+  const paths = [];
+  for (const specialty of specialties) {
+    for (const jurisdiction of jurisdictions) {
+      const matchingLawyers = allLawyers.filter(
+        (l) =>
+          l.specialties?.some((s) => s.slug === specialty.slug) &&
+          l.jurisdictions?.some((j) => j.slug === jurisdiction.slug)
+      );
+      paths.push({
+        params: { specialty: specialty.slug, jurisdiction: jurisdiction.slug },
+        props: { specialty, jurisdiction, lawyers: matchingLawyers.slice(0, 12) },
+      });
+    }
+  }
+
+  // Also pass each specialty's full list for cross-links (deduplicated)
+  return paths;
+}
+
+interface Props {
+  specialty: SpecialtyItem;
+  jurisdiction: JurisdictionItem;
+  lawyers: LawyerItem[];
+}
+
+const { specialty, jurisdiction, lawyers: lawyersProp } = Astro.props;
+const lawyers: LawyerItem[] = lawyersProp ?? [];
+
+const siteUrl = "https://www.cryptocurrencylawyers.com";
+
+const title = `${specialty.name} Lawyers in ${jurisdiction.name} | CryptocurrencyLawyers.com`;
+const description = `Find verified ${specialty.name} attorneys in ${jurisdiction.name}. ${lawyers.length > 0 ? `Browse ${lawyers.length} qualified lawyer${lawyers.length !== 1 ? "s" : ""}` : "Get matched with a specialist"} via CryptocurrencyLawyers.com.`;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, item: { "@id": siteUrl, name: "Home" } },
+    { "@type": "ListItem", position: 2, item: { "@id": `${siteUrl}/specialties/${specialty.slug}`, name: specialty.name } },
+    { "@type": "ListItem", position: 3, item: { "@id": `${siteUrl}/specialties/${specialty.slug}/${jurisdiction.slug}`, name: jurisdiction.name } },
+  ],
+};
+
+const legalServiceSchema = {
+  "@context": "https://schema.org",
+  "@type": "LegalService",
+  name: `${specialty.name} in ${jurisdiction.name}`,
+  description,
+  areaServed: { "@type": "AdministrativeArea", name: jurisdiction.name },
+  serviceType: specialty.name,
+  url: `${siteUrl}/specialties/${specialty.slug}/${jurisdiction.slug}`,
+  provider: { "@type": "Organization", name: "CryptocurrencyLawyers.com", url: siteUrl },
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: `What does a ${specialty.name} attorney in ${jurisdiction.name} do?`,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: `A ${specialty.name} attorney in ${jurisdiction.name} assists clients with ${getSpecContext(specialty.slug)}. They advise on compliance with local rules enforced by ${getJurRegulator(jurisdiction.slug)} and represent clients in disputes or regulatory proceedings.`,
+      },
+    },
+    {
+      "@type": "Question",
+      name: `How do I find a qualified ${specialty.name} lawyer in ${jurisdiction.name}?`,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: `Use CryptocurrencyLawyers.com's free matching service. Describe your case, select ${specialty.name} and ${jurisdiction.name}, and we'll connect you with a verified attorney within 24 hours.`,
+      },
+    },
+    {
+      "@type": "Question",
+      name: `What are the relevant ${jurisdiction.name} rules for ${specialty.name}?`,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: `${getJurNote(jurisdiction.slug)} Attorneys specializing in ${specialty.name} in ${jurisdiction.name} navigate both federal law and local ${jurisdiction.name} requirements.`,
+      },
+    },
+  ],
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={`/specialties/${specialty.slug}/${jurisdiction.slug}`}
+  jsonLd={[breadcrumbSchema, legalServiceSchema, faqSchema]}
+>
+  <!-- BREADCRUMB -->
+  <nav class="border-b border-border bg-bg-secondary" aria-label="Breadcrumb">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <ol class="flex items-center gap-2 text-sm text-text-secondary">
+        <li><a href="/" class="hover:text-text-primary transition-colors">Home</a></li>
+        <li class="text-border">/</li>
+        <li><a href={`/specialties/${specialty.slug}`} class="hover:text-text-primary transition-colors">{specialty.name}</a></li>
+        <li class="text-border">/</li>
+        <li class="text-text-primary font-medium">{jurisdiction.name}</li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="border-b border-border">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <div class="max-w-2xl">
+        <div class="mb-4 flex flex-wrap gap-2">
+          <span class="rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text-secondary">
+            {specialty.name}
+          </span>
+          <span class="rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text-secondary">
+            {jurisdiction.name}
+          </span>
+          {lawyers.length > 0 && (
+            <span class="rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400">
+              {lawyers.length} verified {lawyers.length === 1 ? "attorney" : "attorneys"}
+            </span>
+          )}
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-bold text-text-primary leading-tight">
+          {specialty.name} Lawyers in {jurisdiction.name}
+        </h1>
+        <p class="mt-4 text-text-secondary leading-relaxed">
+          Find verified attorneys specializing in {getSpecContext(specialty.slug)} in {jurisdiction.name}.
+          Regulated by {getJurRegulator(jurisdiction.slug)}.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a
+            href={`/find-a-lawyer`}
+            class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+          >
+            Get Matched in 24 Hours
+          </a>
+          <a
+            href={`/lawyers?specialtySlug=${specialty.slug}&jurisdictionSlug=${jurisdiction.slug}`}
+            class="inline-flex items-center rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-primary hover:bg-surface transition-colors"
+          >
+            Browse All Lawyers
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+      <!-- Main column -->
+      <div class="lg:col-span-2 space-y-12">
+
+        <!-- Contextual section -->
+        <section>
+          <h2 class="text-xl font-bold text-text-primary mb-4">
+            About {specialty.name} in {jurisdiction.name}
+          </h2>
+          <div class="prose prose-invert max-w-none text-text-secondary text-sm leading-relaxed space-y-3">
+            <p>
+              {specialty.name} cases in {jurisdiction.name} typically involve {getSpecContext(specialty.slug)}.
+              Legal professionals in this area must navigate both federal frameworks and local {jurisdiction.name} requirements.
+            </p>
+            <p>
+              {getJurNote(jurisdiction.slug)}
+            </p>
+            <p>
+              When facing {specialty.name} issues in {jurisdiction.name}, working with an attorney who understands
+              local regulatory dynamics is essential. {jurisdiction.name}-based counsel can engage directly with
+              {getJurRegulator(jurisdiction.slug)} and appear before local courts or arbitration panels.
+            </p>
+            {specialty.description && (
+              <p>{specialty.description}</p>
+            )}
+          </div>
+        </section>
+
+        <!-- Lawyer grid -->
+        <section>
+          <h2 class="text-xl font-bold text-text-primary mb-4">
+            {lawyers.length > 0 ? `Verified ${specialty.name} Attorneys in ${jurisdiction.name}` : "Get Matched with an Attorney"}
+          </h2>
+          {lawyers.length === 0 ? (
+            <div class="rounded-xl border border-dashed border-border bg-bg-secondary p-10 text-center">
+              <p class="text-text-secondary text-sm mb-4">
+                No attorneys are currently verified for {specialty.name} in {jurisdiction.name}.
+                Submit a request and we'll match you with a qualified specialist.
+              </p>
+              <a
+                href="/find-a-lawyer"
+                class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+              >
+                Get Matched
+              </a>
+            </div>
+          ) : (
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {lawyers.map((lawyer) => (
+                <a
+                  href={`/lawyers/${lawyer.slug}`}
+                  class="group rounded-xl border border-border bg-bg-secondary p-5 transition-all hover:border-accent/40 hover:bg-surface-accent"
+                >
+                  <div class="flex items-center gap-3 mb-3">
+                    {lawyer.photoUrl ? (
+                      <img src={lawyer.photoUrl} alt={lawyer.name}
+                        class="h-10 w-10 rounded-full object-cover border border-border shrink-0" />
+                    ) : (
+                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent-muted font-bold text-sm">
+                        {lawyer.name.charAt(0)}
+                      </div>
+                    )}
+                    <div class="min-w-0">
+                      <p class="font-semibold text-text-primary group-hover:text-accent-muted text-sm truncate">{lawyer.name}</p>
+                      {lawyer.firmName && <p class="text-xs text-text-secondary truncate">{lawyer.firmName}</p>}
+                    </div>
+                  </div>
+                  {lawyer.bioShort && (
+                    <p class="text-xs text-text-secondary line-clamp-2 mb-3">{lawyer.bioShort}</p>
+                  )}
+                  <div class="flex flex-wrap gap-1.5">
+                    {lawyer.freeConsultation && (
+                      <span class="rounded-full bg-green-900/30 px-2 py-0.5 text-xs text-green-400">Free consult</span>
+                    )}
+                    {lawyer.acceptsCryptoPayment && (
+                      <span class="rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-muted">Crypto pay</span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <!-- FAQ Section -->
+        <section>
+          <h2 class="text-xl font-bold text-text-primary mb-4">Frequently Asked Questions</h2>
+          <div class="space-y-4">
+            {faqSchema.mainEntity.map((faq) => (
+              <div class="rounded-xl border border-border bg-bg-secondary p-5">
+                <h3 class="font-semibold text-text-primary text-sm mb-2">{faq.name}</h3>
+                <p class="text-xs text-text-secondary leading-relaxed">{faq.acceptedAnswer.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-5">
+        <!-- CTA card -->
+        <div class="rounded-xl border border-border bg-bg-secondary p-5">
+          <h3 class="font-semibold text-text-primary text-sm mb-2">Need a {specialty.name} Attorney?</h3>
+          <p class="text-xs text-text-secondary mb-4">Free matching in 24 hours. No obligation.</p>
+          <a href="/find-a-lawyer" class="block w-full rounded-lg bg-accent py-2.5 text-center text-sm font-semibold text-white hover:bg-accent-hover transition-colors">
+            Get Matched
+          </a>
+        </div>
+
+        <!-- Cross-links: other specialties in this jurisdiction -->
+        <div class="rounded-xl border border-border bg-bg-secondary p-5">
+          <h3 class="font-semibold text-text-primary text-sm mb-3">
+            Other Areas in {jurisdiction.name}
+          </h3>
+          <ul class="space-y-1.5">
+            <li>
+              <a href={`/jurisdictions/${jurisdiction.slug}`}
+                class="text-xs text-accent-muted hover:text-accent-light">
+                All lawyers in {jurisdiction.name}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Cross-links: this specialty in other jurisdictions -->
+        <div class="rounded-xl border border-border bg-bg-secondary p-5">
+          <h3 class="font-semibold text-text-primary text-sm mb-3">
+            {specialty.name} Elsewhere
+          </h3>
+          <ul class="space-y-1.5">
+            <li>
+              <a href={`/specialties/${specialty.slug}`}
+                class="text-xs text-accent-muted hover:text-accent-light">
+                All {specialty.name} lawyers
+              </a>
+            </li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>

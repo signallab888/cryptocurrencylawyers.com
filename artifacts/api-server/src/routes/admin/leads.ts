@@ -101,6 +101,57 @@ router.get("/admin/leads", async (req, res, next) => {
   }
 });
 
+// ── GET /admin/leads/:id ─────────────────────────────────────────────────────
+router.get("/admin/leads/:id", async (req, res, next) => {
+  try {
+    const { id } = parseInput(AdminPatchLeadParams, req.params);
+
+    const rows = await db
+      .select({
+        id: leadsTable.id,
+        clientName: leadsTable.clientName,
+        clientEmail: leadsTable.clientEmail,
+        clientPhone: leadsTable.clientPhone,
+        caseTypeSpecialtyId: leadsTable.caseTypeSpecialtyId,
+        jurisdictionId: leadsTable.jurisdictionId,
+        budgetRange: leadsTable.budgetRange,
+        urgency: leadsTable.urgency,
+        description: leadsTable.description,
+        sourcePage: leadsTable.sourcePage,
+        status: leadsTable.status,
+        captchaScore: leadsTable.captchaScore,
+        utmSource: leadsTable.utmSource,
+        utmMedium: leadsTable.utmMedium,
+        utmCampaign: leadsTable.utmCampaign,
+        createdAt: leadsTable.createdAt,
+        updatedAt: leadsTable.updatedAt,
+      })
+      .from(leadsTable)
+      .where(eq(leadsTable.id, id))
+      .limit(1);
+
+    if (rows.length === 0) throw new AppError(404, "NOT_FOUND", `Lead ${id} not found`);
+
+    const lead = rows[0];
+    const [specRow, jurRow] = await Promise.all([
+      lead.caseTypeSpecialtyId
+        ? db.select({ name: specialtiesTable.name }).from(specialtiesTable).where(eq(specialtiesTable.id, lead.caseTypeSpecialtyId)).limit(1)
+        : [],
+      lead.jurisdictionId
+        ? db.select({ name: jurisdictionsTable.name }).from(jurisdictionsTable).where(eq(jurisdictionsTable.id, lead.jurisdictionId)).limit(1)
+        : [],
+    ]);
+
+    res.json({
+      ...lead,
+      specialtyName: specRow[0]?.name ?? null,
+      jurisdictionName: jurRow[0]?.name ?? null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── PATCH /admin/leads/:id ────────────────────────────────────────────────────
 router.patch("/admin/leads/:id", async (req, res, next) => {
   try {

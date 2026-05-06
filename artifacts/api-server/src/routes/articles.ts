@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { articlesTable } from "@workspace/db/schema";
 import {
@@ -78,7 +78,7 @@ router.get("/articles", async (req, res, next) => {
         })
         .from(articlesTable)
         .where(where)
-        .orderBy(articlesTable.publishedAt)
+        .orderBy(desc(articlesTable.publishedAt))
         .limit(params.pageSize)
         .offset(offset),
     ]);

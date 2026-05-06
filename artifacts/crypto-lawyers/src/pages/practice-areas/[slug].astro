@@ -48,7 +48,8 @@ interface Props {
   lawyers: LawyerItem[];
 }
 
-const { practiceArea, lawyers } = Astro.props;
+const { practiceArea, lawyers: lawyersProp } = Astro.props;
+const lawyers: LawyerItem[] = lawyersProp ?? [];
 
 const siteUrl = "https://www.cryptocurrencylawyers.com";
 
