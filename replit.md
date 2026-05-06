@@ -11,7 +11,7 @@ SEO-first lawyer directory for cryptocurrency/blockchain attorneys with freemium
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 - `pnpm --filter @workspace/crypto-lawyers run dev` — run Astro frontend locally
 
-Required env vars: `DATABASE_URL` (others optional; see api-server `.env.example`)
+Required env vars: `DATABASE_URL` (others optional; see `artifacts/crypto-lawyers/.env.example`)
 
 ## Stack
 
@@ -20,7 +20,7 @@ Required env vars: `DATABASE_URL` (others optional; see api-server `.env.example
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod, `drizzle-zod`
 - **API contract**: OpenAPI 3.1 → Orval codegen → React Query hooks + Zod schemas
-- **Auth**: Clerk (optional; admin routes gate on `CLERK_SECRET_KEY` presence)
+- **Auth**: Clerk (`@clerk/astro` v3; only activated when `PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` are set)
 - **Captcha**: Cloudflare Turnstile (skipped in dev if key missing)
 - **Build**: esbuild (API), Astro build (frontend)
 - **Monorepo**: pnpm workspaces, Node 24
@@ -29,11 +29,26 @@ Required env vars: `DATABASE_URL` (others optional; see api-server `.env.example
 
 ```
 artifacts/
-  api-server/src/routes/   — all 11 Express route handlers
+  api-server/src/routes/   — Express route handlers (admin/, articles.ts, lawyers.ts, leads.ts …)
   crypto-lawyers/src/
     layouts/BaseLayout.astro — OG meta, JSON-LD, canonical
-    pages/index.astro        — static home page
+    middleware.ts            — Clerk session middleware (conditional on CLERK_SECRET_KEY)
+    pages/
+      index.astro                              — home
+      articles/index.astro                     — articles list (SSG)
+      articles/[slug].astro                    — article detail (SSG, Article JSON-LD)
+      lawyers/index.astro                      — lawyer search (SSR + LawyerSearchIsland)
+      lawyers/[slug].astro                     — attorney profile (SSG, Attorney JSON-LD)
+      practice-areas/[slug].astro              — practice area (SSG)
+      specialties/[slug].astro                 — specialty overview (SSG)
+      specialties/[specialty]/[jurisdiction].astro — SEO gold page (SSG, LegalService + FAQPage JSON-LD)
+      jurisdictions/[slug].astro               — jurisdiction overview (SSG)
+      find-a-lawyer.astro                      — lead-capture form (SSG + LeadFormIsland)
+      admin/leads/index.astro                  — leads dashboard (SSR, Clerk-gated)
+      admin/leads/[id].astro                   — lead detail + PATCH status (SSR, Clerk-gated)
+      admin/sign-in.astro                      — Clerk sign-in widget
     components/              — Nav.astro, Footer.astro, React islands
+    lib/api.ts               — build-time fetch client (all types + admin auth functions)
     styles/global.css        — Tailwind v4 @theme design tokens
 lib/
   db/src/schema.ts           — Drizzle schema (source of truth)
@@ -44,20 +59,20 @@ lib/
 
 ## Architecture decisions
 
-- **Astro static-first**: `output: 'static'` for all public pages; switch to hybrid when admin SSR is needed
+- **Astro output: server + prerender per-page**: SSR for admin + search; `prerender=true` for all public pages
 - **Contract-first API**: OpenAPI spec drives both server validation (Zod) and client hooks (React Query) via Orval codegen
-- **Clerk conditional**: `clerkMiddleware()` only applied when `CLERK_SECRET_KEY` is set, so dev works without keys
-- **Anti-N+1 lawyers endpoint**: single JOIN query + in-memory grouping for specialties/jurisdictions
+- **Clerk conditional**: `clerk()` integration + `clerkMiddleware()` only activated when `PUBLIC_CLERK_PUBLISHABLE_KEY` is set — avoids client-side errors in dev without keys
+- **Anti-N+1 specialty/jurisdiction**: `getStaticPaths` does 3 parallel fetches (specialties, jurisdictions, allLawyers) then groups in memory — generates all 1,342 SEO pages at build time
 - **No Replit plugins**: removed `@replit/vite-plugin-*` so the build is portable to any Node host
 
 ## Product
 
 - Public directory: browse lawyers by practice area, jurisdiction, specialty
+- SEO gold pages: `/specialties/[specialty]/[jurisdiction]` — 1,342 pages with LegalService + FAQPage schema
+- Articles/blog: `/articles` index + `/articles/[slug]` with Article JSON-LD
 - Lead capture: `/find-a-lawyer` form → POST /api/leads (Turnstile captcha in prod)
 - Newsletter subscription: POST /api/newsletter/subscribe
-- Articles/blog: SEO content pages
-- Admin panel: authenticated lead management (Clerk)
-- Freemium tiers: free listing + premium featured placement (future Stripe integration)
+- Admin panel: `/admin/leads` — Clerk-gated dashboard + lead detail + status PATCH
 
 ## User preferences
 
@@ -71,6 +86,8 @@ lib/
 - **CSS @import order**: Google Fonts `@import url(...)` must come BEFORE `@import "tailwindcss"` in global.css
 - **Astro build outDir**: set to `./dist/public` to match artifact.toml `publicDir`
 - **PORT**: crypto-lawyers uses PORT=23588 (set in artifact.toml env); `astro dev --port $PORT` reads it
+- **Lawyers pageSize max**: 100 (not 1000) — `getStaticPaths` in specialty/jurisdiction paginates with `while` loop
+- **Astro getStaticPaths scope**: helper functions must be declared INSIDE `getStaticPaths`, not in module scope above it
 - `pnpm run dev` at workspace root has no script — use workflows or `--filter`
 - Admin routes return 401 (not 403) when Clerk keys missing — by design
 
@@ -80,3 +97,4 @@ lib/
 - DB schema: `lib/db/src/schema.ts`
 - OpenAPI spec: `lib/api-spec/openapi.yaml`
 - Design tokens: `artifacts/crypto-lawyers/src/styles/global.css`
+- Frontend env template: `artifacts/crypto-lawyers/.env.example`
