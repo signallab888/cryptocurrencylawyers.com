@@ -105,6 +105,8 @@ const organizationSchema = {
         <script type="application/ld+json" set:html={JSON.stringify(schema)} />
       ))
     }
+    <!-- Page-specific head content (scripts, preloads, etc.) -->
+    <slot name="head" />
   </head>
   <body>
     <Nav />

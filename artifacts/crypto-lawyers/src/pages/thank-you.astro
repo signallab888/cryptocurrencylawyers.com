@@ -1,0 +1,33 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Request Received | CryptocurrencyLawyers.com"
+  description="Your lawyer matching request has been received. We'll connect you with a verified cryptocurrency attorney within 24 hours."
+  canonical="/thank-you"
+>
+  <div class="flex min-h-[60vh] items-center justify-center px-4">
+    <div class="max-w-md text-center">
+      <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-900/30">
+        <svg class="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-text-primary mb-3">Request Received</h1>
+      <p class="text-text-secondary leading-relaxed mb-8">
+        We've received your request and will connect you with a verified cryptocurrency attorney within 24 hours. Check your inbox for next steps.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/" class="inline-flex items-center rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover">
+          Back to Home
+        </a>
+        <a href="/lawyers" class="inline-flex items-center rounded-lg border border-border px-6 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface">
+          Browse Lawyers
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

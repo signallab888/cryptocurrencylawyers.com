@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import LawyerSearchIsland from "../../components/islands/LawyerSearchIsland";
+
+// SSR: read URL params for dynamic meta title
+const url = Astro.url;
+const specialtySlug = url.searchParams.get("specialtySlug");
+const jurisdictionSlug = url.searchParams.get("jurisdictionSlug");
+
+function slugToTitle(slug: string) {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const title = specialtySlug
+  ? `Browse ${slugToTitle(specialtySlug)} Lawyers | CryptocurrencyLawyers.com`
+  : jurisdictionSlug
+  ? `Cryptocurrency Lawyers in ${slugToTitle(jurisdictionSlug)} | CryptocurrencyLawyers.com`
+  : "Browse All Cryptocurrency Lawyers | CryptocurrencyLawyers.com";
+
+const description =
+  "Search and filter verified cryptocurrency lawyers by specialty, jurisdiction, language, and more. Find the right crypto attorney for your case.";
+
+const siteUrl = "https://www.cryptocurrencylawyers.com";
+
+const searchSchema = {
+  "@context": "https://schema.org",
+  "@type": "SearchResultsPage",
+  name: title,
+  url: `${siteUrl}/lawyers`,
+  description,
+  mainEntity: {
+    "@type": "ItemList",
+    name: "Cryptocurrency Lawyers",
+  },
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical="/lawyers"
+  jsonLd={[searchSchema]}
+>
+  <div class="border-b border-border bg-bg-secondary">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-bold text-text-primary">
+        {specialtySlug
+          ? `${slugToTitle(specialtySlug)} Lawyers`
+          : jurisdictionSlug
+          ? `Cryptocurrency Lawyers in ${slugToTitle(jurisdictionSlug)}`
+          : "Browse Cryptocurrency Lawyers"}
+      </h1>
+      <p class="mt-2 text-text-secondary text-sm">
+        Filter by specialty, jurisdiction, and availability to find the right attorney.
+      </p>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <LawyerSearchIsland
+      client:load
+      initialSpecialtySlug={specialtySlug ?? undefined}
+      initialJurisdictionSlug={jurisdictionSlug ?? undefined}
+    />
+  </div>
+</BaseLayout>

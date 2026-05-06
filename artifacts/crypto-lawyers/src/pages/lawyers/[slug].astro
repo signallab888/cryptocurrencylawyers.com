@@ -1,0 +1,329 @@
+---
+export const prerender = true;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { listLawyers, getLawyerBySlug } from "../../lib/api";
+
+export async function getStaticPaths() {
+  // ONE fetch for ALL lawyer profile pages — zero N+1
+  const { data } = await listLawyers({ pageSize: 500 });
+  return data.map((l) => ({
+    params: { slug: l.slug },
+    props: { slug: l.slug },
+  }));
+}
+
+interface Props { slug: string }
+const { slug } = Astro.props;
+
+// 1 fetch per page at build time (acceptable for profile pages)
+const lawyer = await getLawyerBySlug(slug);
+
+const siteUrl = "https://www.cryptocurrencylawyers.com";
+
+const primarySpecialty = lawyer.specialties?.find((s) => s.isFeatured) ?? lawyer.specialties?.[0];
+
+const title = `${lawyer.name} — ${primarySpecialty?.name ?? "Cryptocurrency"} Lawyer | CryptocurrencyLawyers.com`;
+const rawDescription = lawyer.bioShort
+  ?? `Verified cryptocurrency attorney${lawyer.locationCity ? ` based in ${lawyer.locationCity}` : ""}. View profile on CryptocurrencyLawyers.com.`;
+const description = rawDescription.length > 155 ? rawDescription.slice(0, 152) + "…" : rawDescription;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, item: { "@id": siteUrl, name: "Home" } },
+    { "@type": "ListItem", position: 2, item: { "@id": `${siteUrl}/lawyers`, name: "Lawyers" } },
+    { "@type": "ListItem", position: 3, item: { "@id": `${siteUrl}/lawyers/${slug}`, name: lawyer.name } },
+  ],
+};
+
+const attorneySchema = {
+  "@context": "https://schema.org",
+  "@type": "Attorney",
+  name: lawyer.name,
+  ...(lawyer.photoUrl ? { image: lawyer.photoUrl } : {}),
+  description: lawyer.bioShort ?? undefined,
+  jobTitle: "Cryptocurrency Attorney",
+  url: `${siteUrl}/lawyers/${slug}`,
+  ...(lawyer.website ? { sameAs: lawyer.website } : {}),
+  ...(lawyer.firmName ? { memberOf: { "@type": "Organization", name: lawyer.firmName } } : {}),
+  ...(lawyer.jurisdictions?.length
+    ? { areaServed: lawyer.jurisdictions.map((j) => j.name) }
+    : {}),
+  ...(lawyer.specialties?.length
+    ? { knowsAbout: lawyer.specialties.map((s) => s.name) }
+    : {}),
+  ...(lawyer.emailPublic ? { email: lawyer.emailPublic } : {}),
+};
+
+const PRESENCE_LABELS: Record<string, string> = {
+  licensed: "Licensed",
+  licensed_inactive: "Licensed (Inactive)",
+  serves: "Serves Clients",
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={`/lawyers/${slug}`}
+  jsonLd={[breadcrumbSchema, attorneySchema]}
+>
+  <!-- ── BREADCRUMB ──────────────────────────────────────────────────────── -->
+  <nav class="border-b border-border bg-bg-secondary" aria-label="Breadcrumb">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <ol class="flex items-center gap-2 text-sm text-text-secondary">
+        <li><a href="/" class="hover:text-text-primary transition-colors">Home</a></li>
+        <li class="text-border">/</li>
+        <li><a href="/lawyers" class="hover:text-text-primary transition-colors">Lawyers</a></li>
+        <li class="text-border">/</li>
+        <li class="text-text-primary font-medium truncate max-w-xs">{lawyer.name}</li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────────────────────────── -->
+  <section class="border-b border-border">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <div class="flex flex-col sm:flex-row gap-6 items-start">
+        <!-- Avatar -->
+        <div class="shrink-0">
+          {lawyer.photoUrl ? (
+            <img
+              src={lawyer.photoUrl}
+              alt={lawyer.name}
+              class="h-24 w-24 rounded-full object-cover border border-border"
+              loading="eager"
+            />
+          ) : (
+            <div class="flex h-24 w-24 items-center justify-center rounded-full bg-accent/20 text-accent-muted text-3xl font-bold border border-border">
+              {lawyer.name.charAt(0)}
+            </div>
+          )}
+        </div>
+
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            {lawyer.tier === "featured" && (
+              <span class="rounded-full bg-yellow-900/30 px-2.5 py-0.5 text-xs font-medium text-yellow-400">Featured</span>
+            )}
+            {lawyer.tier === "premium" && (
+              <span class="rounded-full bg-purple-900/30 px-2.5 py-0.5 text-xs font-medium text-purple-400">Premium</span>
+            )}
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-bold text-text-primary">{lawyer.name}</h1>
+          {lawyer.firmName && <p class="text-text-secondary mt-1 text-lg">{lawyer.firmName}</p>}
+          {(lawyer.locationCity || lawyer.locationCountryCode) && (
+            <p class="text-text-muted mt-0.5 text-sm flex items-center gap-1.5">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {[lawyer.locationCity, lawyer.locationCountryCode].filter(Boolean).join(", ")}
+            </p>
+          )}
+
+          <!-- Badges -->
+          <div class="mt-4 flex flex-wrap gap-2">
+            {lawyer.freeConsultation && (
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400">
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                Free consultation
+              </span>
+            )}
+            {lawyer.acceptsCryptoPayment && (
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent-muted">
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" /></svg>
+                Accepts crypto payment
+              </span>
+            )}
+            {lawyer.yearsExperience && (
+              <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-text-secondary">
+                {lawyer.yearsExperience}+ years experience
+              </span>
+            )}
+            {lawyer.languages.length > 0 && (
+              <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-text-secondary">
+                {lawyer.languages.join(", ")}
+              </span>
+            )}
+          </div>
+
+          <!-- Contact links -->
+          <div class="mt-5 flex flex-wrap gap-3">
+            <a
+              href={`/find-a-lawyer?lawyerId=${lawyer.id}`}
+              class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+            >
+              Request Consultation
+            </a>
+            {lawyer.website && (
+              <a href={lawyer.website} target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface">
+                Website
+              </a>
+            )}
+            {lawyer.linkedin && (
+              <a href={lawyer.linkedin} target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface">
+                LinkedIn
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <!-- Main column -->
+      <div class="lg:col-span-2 space-y-12">
+
+        <!-- Bio Long -->
+        {(lawyer.bioLong || lawyer.bioShort) && (
+          <section>
+            <h2 class="text-xl font-bold text-text-primary mb-4">About</h2>
+            <div class="prose prose-invert max-w-none text-text-secondary leading-relaxed text-sm space-y-3">
+              {lawyer.bioLong ? (
+                <p>{lawyer.bioLong}</p>
+              ) : (
+                <p>{lawyer.bioShort}</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        <!-- Specialties -->
+        {(lawyer.specialties?.length ?? 0) > 0 && (
+          <section>
+            <h2 class="text-xl font-bold text-text-primary mb-4">Practice Areas & Specialties</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {lawyer.specialties!.map((s) => (
+                <a
+                  href={`/specialties/${s.slug}`}
+                  class="group flex items-start gap-3 rounded-lg border border-border bg-bg-secondary p-4 transition-all hover:border-accent/40 hover:bg-surface-accent"
+                >
+                  <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20">
+                    <svg class="h-3 w-3 text-accent-muted" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-medium text-text-primary group-hover:text-accent-muted text-sm">{s.name}</p>
+                    {s.yearsExperience && (
+                      <p class="text-xs text-text-secondary mt-0.5">{s.yearsExperience} years in this area</p>
+                    )}
+                  </div>
+                  {s.isFeatured && (
+                    <span class="ml-auto shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-muted">Primary</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- Jurisdictions -->
+        {(lawyer.jurisdictions?.length ?? 0) > 0 && (
+          <section>
+            <h2 class="text-xl font-bold text-text-primary mb-4">Licensed Jurisdictions</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-border text-left">
+                    <th class="pb-2 pr-4 font-medium text-text-secondary">Jurisdiction</th>
+                    <th class="pb-2 pr-4 font-medium text-text-secondary">Status</th>
+                    <th class="pb-2 pr-4 font-medium text-text-secondary">Bar #</th>
+                    <th class="pb-2 font-medium text-text-secondary">Since</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  {lawyer.jurisdictions!.map((j) => (
+                    <tr>
+                      <td class="py-3 pr-4">
+                        <a href={`/jurisdictions/${j.slug}`} class="text-text-primary hover:text-accent-muted font-medium">
+                          {j.name}
+                        </a>
+                        {j.isPrimary && <span class="ml-2 text-xs text-accent-bright">(Primary)</span>}
+                      </td>
+                      <td class="py-3 pr-4">
+                        <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          j.barStatus === "active"
+                            ? "bg-green-900/30 text-green-400"
+                            : "bg-border/40 text-text-muted"
+                        }`}>
+                          {PRESENCE_LABELS[j.presenceLevel] ?? j.presenceLevel}
+                        </span>
+                      </td>
+                      <td class="py-3 pr-4 text-text-secondary">{j.barNumber ?? "—"}</td>
+                      <td class="py-3 text-text-secondary">{j.admittedYear ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+        <!-- Contact card -->
+        <div class="rounded-xl border border-border bg-bg-secondary p-5">
+          <h3 class="font-semibold text-text-primary mb-4 text-sm">Get in Touch</h3>
+          <a
+            href={`/find-a-lawyer?lawyerId=${lawyer.id}`}
+            class="block w-full rounded-lg bg-accent py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+          >
+            Request Consultation
+          </a>
+          {lawyer.emailPublic && (
+            <a href={`mailto:${lawyer.emailPublic}`}
+               class="mt-2 block w-full rounded-lg border border-border py-2.5 text-center text-sm font-medium text-text-primary transition-colors hover:bg-surface">
+              Send Email
+            </a>
+          )}
+          {lawyer.phone && (
+            <a href={`tel:${lawyer.phone}`}
+               class="mt-2 block w-full rounded-lg border border-border py-2.5 text-center text-sm font-medium text-text-primary transition-colors hover:bg-surface">
+              {lawyer.phone}
+            </a>
+          )}
+          <p class="mt-3 text-center text-xs text-text-muted">Free matching — no obligation</p>
+        </div>
+
+        <!-- Quick facts -->
+        <div class="rounded-xl border border-border bg-bg-secondary p-5 space-y-3">
+          <h3 class="font-semibold text-text-primary text-sm mb-2">Quick Facts</h3>
+          {lawyer.yearsExperience && (
+            <div class="flex justify-between text-sm">
+              <span class="text-text-secondary">Experience</span>
+              <span class="text-text-primary font-medium">{lawyer.yearsExperience} years</span>
+            </div>
+          )}
+          <div class="flex justify-between text-sm">
+            <span class="text-text-secondary">Free consult</span>
+            <span class={`font-medium ${lawyer.freeConsultation ? "text-green-400" : "text-text-muted"}`}>
+              {lawyer.freeConsultation ? "Yes" : "No"}
+            </span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-text-secondary">Crypto payment</span>
+            <span class={`font-medium ${lawyer.acceptsCryptoPayment ? "text-accent-muted" : "text-text-muted"}`}>
+              {lawyer.acceptsCryptoPayment ? "Accepted" : "No"}
+            </span>
+          </div>
+          {lawyer.languages.length > 0 && (
+            <div class="flex justify-between text-sm">
+              <span class="text-text-secondary">Languages</span>
+              <span class="text-text-primary font-medium text-right max-w-[140px]">{lawyer.languages.join(", ")}</span>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>

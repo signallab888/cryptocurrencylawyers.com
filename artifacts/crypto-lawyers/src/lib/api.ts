@@ -124,3 +124,35 @@ export async function listLawyers(params: ListLawyersParams = {}) {
   const q = qs.size ? `?${qs}` : "";
   return apiFetch<{ data: LawyerItem[]; meta: LawyerMeta }>(`/lawyers${q}`);
 }
+
+export type LawyerProfile = Omit<LawyerItem, "specialties" | "jurisdictions"> & {
+  emailPublic?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  bioLong?: string | null;
+  linkedin?: string | null;
+  jurisdictions?: Array<{
+    jurisdictionId: number;
+    slug: string;
+    name: string;
+    barNumber?: string | null;
+    admittedYear?: number | null;
+    isPrimary?: boolean;
+    presenceLevel: "licensed" | "licensed_inactive" | "serves";
+    barStatus: "active" | "inactive" | "retired";
+  }>;
+  specialties?: Array<{
+    id: number;
+    slug: string;
+    name: string;
+    practiceAreaId: number;
+    description?: string | null;
+    lawyerCount?: number;
+    yearsExperience?: number | null;
+    isFeatured?: boolean;
+  }>;
+};
+
+export async function getLawyerBySlug(slug: string) {
+  return apiFetch<LawyerProfile>(`/lawyers/${encodeURIComponent(slug)}`);
+}
