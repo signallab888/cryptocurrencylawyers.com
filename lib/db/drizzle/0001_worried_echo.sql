@@ -1,0 +1,1 @@
+ALTER TABLE "lead_purchases" ALTER COLUMN "amount_paid" SET NOT NULL;

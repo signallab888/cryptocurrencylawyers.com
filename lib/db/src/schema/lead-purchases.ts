@@ -9,7 +9,7 @@ export const leadPurchasesTable = pgTable("lead_purchases", {
   id: serial("id").primaryKey(),
   leadId: integer("lead_id").notNull().references(() => leadsTable.id, { onDelete: "cascade" }),
   lawyerId: integer("lawyer_id").notNull().references(() => lawyersTable.id, { onDelete: "restrict" }),
-  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }),
+  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull(),
   purchaseType: purchaseTypeEnum("purchase_type").notNull().default("shared"),
   stripePaymentId: text("stripe_payment_id"),
   notifiedAt: timestamp("notified_at", { withTimezone: true }),
