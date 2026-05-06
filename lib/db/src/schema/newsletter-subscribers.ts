@@ -7,10 +7,12 @@ export const newsletterSubscribersTable = pgTable("newsletter_subscribers", {
   email: text("email").notNull().unique(),
   sourcePage: text("source_page"),
   confirmed: boolean("confirmed").notNull().default(false),
-  confirmationToken: text("confirmation_token"),
+  confirmationToken: text("confirmation_token").unique(),
+  unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
-export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribersTable).omit({ id: true, createdAt: true, confirmed: true });
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribersTable).omit({ id: true, createdAt: true, updatedAt: true, confirmed: true });
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
 export type NewsletterSubscriber = typeof newsletterSubscribersTable.$inferSelect;
