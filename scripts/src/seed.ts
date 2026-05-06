@@ -1,4 +1,4 @@
-import postgres from "pg";
+import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
   practiceAreasTable,
@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
 }
 
-const client = new postgres.Client({ connectionString: process.env.DATABASE_URL });
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 const db = drizzle(client);
 

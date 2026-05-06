@@ -2,35 +2,660 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: |
+    REST API for CryptocurrencyLawyers.com.
+    Public endpoints serve the frontend directory and lead capture.
+    Admin endpoints (prefixed /admin) require Clerk JWT authentication.
 servers:
   - url: /api
     description: Base API path
-tags:
-  - name: health
-    description: Health operations
+
+# ─── SECURITY ─────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    clerkJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Clerk-issued JWT. Pass in Authorization header.
+
+  # ─── SHARED RESPONSES ───────────────────────────────────────────────────────
+  responses:
+    BadRequest:
+      description: Invalid request body or query parameters
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Unauthorized:
+      description: Missing or invalid Clerk JWT
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    RateLimit:
+      description: Too many requests
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  # ─── SCHEMAS ────────────────────────────────────────────────────────────────
+  schemas:
+
+    # ── Health ──
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, example: "ok" }
+
+    # ── Pagination ──
+    PaginationMeta:
+      type: object
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page:       { type: integer, minimum: 1, example: 1 }
+        pageSize:   { type: integer, minimum: 1, maximum: 100, example: 20 }
+        total:      { type: integer, minimum: 0, example: 142 }
+        totalPages: { type: integer, minimum: 0, example: 8 }
+
+    # ── Error ──
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:    { type: string, example: "VALIDATION_ERROR" }
+            message: { type: string, example: "slug is required" }
+            details: { type: object, additionalProperties: true }
+
+    # ── Enums ──
+    LawyerTier:
+      type: string
+      enum: [free, featured, premium]
+
+    LawyerStatus:
+      type: string
+      enum: [draft, pending_review, published, suspended]
+
+    PresenceLevel:
+      type: string
+      enum: [licensed, licensed_inactive, serves]
+
+    BarStatus:
+      type: string
+      enum: [active, inactive, retired]
+
+    LeadStatus:
+      type: string
+      enum: [new, qualified, sold, closed, spam]
+
+    BudgetRange:
+      type: string
+      enum: [under_10k, 10k_50k, 50k_250k, 250k_plus, unknown]
+
+    Urgency:
+      type: string
+      enum: [immediate, weeks, planning]
+
+    ArticleStatus:
+      type: string
+      enum: [draft, published]
+
+    # ── Practice Areas ──
+    PracticeAreaSummary:
+      type: object
+      required: [id, slug, name]
+      properties:
+        id:          { type: integer, example: 1 }
+        slug:        { type: string, example: "regulatory-compliance" }
+        name:        { type: string, example: "Regulatory & Compliance" }
+        description: { type: string, nullable: true }
+
+    PracticeAreaWithSpecialties:
+      allOf:
+        - $ref: "#/components/schemas/PracticeAreaSummary"
+        - type: object
+          properties:
+            specialties:
+              type: array
+              items: { $ref: "#/components/schemas/SpecialtySummary" }
+
+    # ── Specialties ──
+    SpecialtySummary:
+      type: object
+      required: [id, slug, name, practiceAreaId]
+      properties:
+        id:             { type: integer, example: 3 }
+        slug:           { type: string, example: "sec-enforcement-defense" }
+        name:           { type: string, example: "SEC Enforcement Defense" }
+        practiceAreaId: { type: integer, example: 1 }
+        description:    { type: string, nullable: true }
+        lawyerCount:    { type: integer, minimum: 0, example: 14 }
+
+    # ── Jurisdictions ──
+    JurisdictionSummary:
+      type: object
+      required: [id, slug, name, countryCode, type]
+      properties:
+        id:          { type: integer, example: 5 }
+        slug:        { type: string, example: "new-york" }
+        name:        { type: string, example: "New York" }
+        countryCode: { type: string, example: "US" }
+        type:        { type: string, enum: [state, country, province] }
+        lawyerCount: { type: integer, minimum: 0, example: 31 }
+
+    # ── Lawyers ──
+    LawyerJurisdictionSummary:
+      type: object
+      required: [jurisdictionId, slug, name, presenceLevel, barStatus]
+      properties:
+        jurisdictionId: { type: integer }
+        slug:           { type: string, example: "new-york" }
+        name:           { type: string, example: "New York" }
+        barNumber:      { type: string, nullable: true }
+        admittedYear:   { type: integer, nullable: true }
+        isPrimary:      { type: boolean }
+        presenceLevel:  { $ref: "#/components/schemas/PresenceLevel" }
+        barStatus:      { $ref: "#/components/schemas/BarStatus" }
+
+    LawyerListItem:
+      type: object
+      required: [id, slug, name, tier, status, languages, acceptsCryptoPayment, freeConsultation]
+      properties:
+        id:                   { type: integer, example: 42 }
+        slug:                 { type: string, example: "jane-doe-new-york" }
+        name:                 { type: string, example: "Jane Doe" }
+        firmName:             { type: string, nullable: true }
+        photoUrl:             { type: string, format: uri, nullable: true }
+        bioShort:             { type: string, nullable: true }
+        emailPublic:          { type: string, format: email, nullable: true }
+        phone:                { type: string, nullable: true }
+        website:              { type: string, format: uri, nullable: true }
+        locationCity:         { type: string, nullable: true }
+        locationCountryCode:  { type: string, nullable: true }
+        yearsExperience:      { type: integer, nullable: true }
+        languages:            { type: array, items: { type: string } }
+        acceptsCryptoPayment: { type: boolean }
+        freeConsultation:     { type: boolean }
+        tier:                 { $ref: "#/components/schemas/LawyerTier" }
+        status:               { $ref: "#/components/schemas/LawyerStatus" }
+        jurisdictions:
+          type: array
+          items: { $ref: "#/components/schemas/LawyerJurisdictionSummary" }
+        specialties:
+          type: array
+          items: { $ref: "#/components/schemas/SpecialtySummary" }
+
+    LawyerProfile:
+      allOf:
+        - $ref: "#/components/schemas/LawyerListItem"
+        - type: object
+          properties:
+            bioLong:           { type: string, nullable: true }
+            linkedin:          { type: string, format: uri, nullable: true }
+            twitter:           { type: string, nullable: true }
+            profileViewsCount: { type: integer }
+            featuredUntil:     { type: string, format: date-time, nullable: true }
+            createdAt:         { type: string, format: date-time }
+            updatedAt:         { type: string, format: date-time }
+
+    # ── Leads ──
+    LeadCreate:
+      type: object
+      required: [clientName, clientEmail, turnstileToken]
+      properties:
+        clientName:          { type: string, minLength: 2, maxLength: 200 }
+        clientEmail:         { type: string, format: email }
+        clientPhone:         { type: string, nullable: true }
+        caseTypeSpecialtyId: { type: integer, nullable: true }
+        jurisdictionId:      { type: integer, nullable: true }
+        budgetRange:         { $ref: "#/components/schemas/BudgetRange" }
+        urgency:             { $ref: "#/components/schemas/Urgency" }
+        description:         { type: string, maxLength: 5000, nullable: true }
+        turnstileToken:      { type: string, description: "Cloudflare Turnstile response token" }
+
+    LeadResponse:
+      type: object
+      required: [id, createdAt]
+      properties:
+        id:        { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    LeadAdminItem:
+      type: object
+      required: [id, clientName, clientEmail, status, budgetRange, urgency, createdAt, updatedAt]
+      properties:
+        id:                  { type: integer }
+        clientName:          { type: string }
+        clientEmail:         { type: string, format: email }
+        clientPhone:         { type: string, nullable: true }
+        caseTypeSpecialtyId: { type: integer, nullable: true }
+        specialtyName:       { type: string, nullable: true }
+        jurisdictionId:      { type: integer, nullable: true }
+        jurisdictionName:    { type: string, nullable: true }
+        budgetRange:         { $ref: "#/components/schemas/BudgetRange" }
+        urgency:             { $ref: "#/components/schemas/Urgency" }
+        description:         { type: string, nullable: true }
+        sourcePage:          { type: string, nullable: true }
+        status:              { $ref: "#/components/schemas/LeadStatus" }
+        captchaScore:        { type: number, nullable: true }
+        utmSource:           { type: string, nullable: true }
+        utmMedium:           { type: string, nullable: true }
+        utmCampaign:         { type: string, nullable: true }
+        createdAt:           { type: string, format: date-time }
+        updatedAt:           { type: string, format: date-time }
+
+    LeadPatch:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/LeadStatus" }
+
+    # ── Articles ──
+    ArticleSummary:
+      type: object
+      required: [id, slug, title, status, tags, viewCount]
+      properties:
+        id:                 { type: integer }
+        slug:               { type: string }
+        title:              { type: string }
+        excerpt:            { type: string, nullable: true }
+        featuredImageUrl:   { type: string, format: uri, nullable: true }
+        featuredImageAlt:   { type: string, nullable: true }
+        tags:               { type: array, items: { type: string } }
+        viewCount:          { type: integer }
+        practiceAreaId:     { type: integer, nullable: true }
+        specialtyId:        { type: integer, nullable: true }
+        jurisdictionId:     { type: integer, nullable: true }
+        status:             { $ref: "#/components/schemas/ArticleStatus" }
+        publishedAt:        { type: string, format: date-time, nullable: true }
+        authorName:         { type: string, nullable: true }
+        readingTimeMinutes: { type: integer, nullable: true }
+
+    ArticleFull:
+      allOf:
+        - $ref: "#/components/schemas/ArticleSummary"
+        - type: object
+          required: [content]
+          properties:
+            content:         { type: string }
+            metaTitle:       { type: string, nullable: true }
+            metaDescription: { type: string, nullable: true }
+            createdAt:       { type: string, format: date-time }
+            updatedAt:       { type: string, format: date-time }
+
+    # ── Newsletter ──
+    NewsletterSubscribeRequest:
+      type: object
+      required: [email]
+      properties:
+        email:      { type: string, format: email }
+        sourcePage: { type: string, nullable: true }
+
+    NewsletterSubscribeResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [subscribed, already_subscribed] }
+
+
+# ─── PATHS ────────────────────────────────────────────────────────────────────
 paths:
+
+  # ── Health ──────────────────────────────────────────────────────────────────
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
-components:
-  schemas:
-    HealthStatus:
-      type: object
-      properties:
-        status:
-          type: string
-      required:
-        - status
+              schema: { $ref: "#/components/schemas/HealthStatus" }
 
+  # ── 1. GET /lawyers ──────────────────────────────────────────────────────────
+  /lawyers:
+    get:
+      operationId: listLawyers
+      summary: Search and list published lawyers
+      tags: [Lawyers]
+      parameters:
+        - name: specialtySlug
+          in: query
+          schema: { type: string }
+        - name: jurisdictionSlug
+          in: query
+          schema: { type: string }
+        - name: presenceLevel
+          in: query
+          schema: { $ref: "#/components/schemas/PresenceLevel" }
+        - name: tier
+          in: query
+          schema: { $ref: "#/components/schemas/LawyerTier" }
+        - name: language
+          in: query
+          schema: { type: string }
+          description: Filter by spoken language (case-insensitive)
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Full-text search across name, firm, bio
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [tier, name, yearsExperience], default: tier }
+          description: "tier sorts: premium > featured > free, then alphabetical within tier"
+      responses:
+        "200":
+          description: Paginated list of lawyers
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/LawyerListItem" } }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 2. GET /lawyers/{slug} ───────────────────────────────────────────────────
+  /lawyers/{slug}:
+    get:
+      operationId: getLawyerBySlug
+      summary: Get full lawyer profile by slug
+      tags: [Lawyers]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Lawyer profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LawyerProfile" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 3. GET /specialties ──────────────────────────────────────────────────────
+  /specialties:
+    get:
+      operationId: listSpecialties
+      summary: List all specialties with lawyer counts
+      tags: [Catalog]
+      parameters:
+        - name: practiceAreaSlug
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of specialties
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/SpecialtySummary" } }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 4. GET /jurisdictions ────────────────────────────────────────────────────
+  /jurisdictions:
+    get:
+      operationId: listJurisdictions
+      summary: List all active jurisdictions with lawyer counts
+      tags: [Catalog]
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [state, country, province] }
+        - name: countryCode
+          in: query
+          schema: { type: string, example: "US" }
+      responses:
+        "200":
+          description: List of jurisdictions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/JurisdictionSummary" } }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 5. GET /practice-areas ───────────────────────────────────────────────────
+  /practice-areas:
+    get:
+      operationId: listPracticeAreas
+      summary: List practice areas with nested specialties
+      tags: [Catalog]
+      responses:
+        "200":
+          description: Practice areas with their specialties
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/PracticeAreaWithSpecialties" } }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 6. POST /leads ───────────────────────────────────────────────────────────
+  /leads:
+    post:
+      operationId: createLead
+      summary: Submit a new client lead (public, Turnstile protected)
+      tags: [Leads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeadCreate" }
+      responses:
+        "201":
+          description: Lead created successfully
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeadResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "422":
+          description: Cloudflare Turnstile captcha verification failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "429": { $ref: "#/components/responses/RateLimit" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 7. GET /admin/leads ──────────────────────────────────────────────────────
+  /admin/leads:
+    get:
+      operationId: adminListLeads
+      summary: List all leads (admin only)
+      tags: [Admin]
+      security:
+        - clerkJwt: []
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/LeadStatus" }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [createdAt, status], default: createdAt }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+      responses:
+        "200":
+          description: Paginated lead list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/LeadAdminItem" } }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 8. PATCH /admin/leads/{id} ───────────────────────────────────────────────
+  /admin/leads/{id}:
+    patch:
+      operationId: adminPatchLead
+      summary: Update lead status (admin only)
+      tags: [Admin]
+      security:
+        - clerkJwt: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LeadPatch" }
+      responses:
+        "200":
+          description: Updated lead
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeadAdminItem" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 9. GET /articles ─────────────────────────────────────────────────────────
+  /articles:
+    get:
+      operationId: listArticles
+      summary: List published articles with optional filters
+      tags: [Articles]
+      parameters:
+        - name: practiceAreaSlug
+          in: query
+          schema: { type: string }
+        - name: specialtySlug
+          in: query
+          schema: { type: string }
+        - name: jurisdictionSlug
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+          description: Filter by a single tag value
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Paginated article list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/ArticleSummary" } }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 10. GET /articles/{slug} ──────────────────────────────────────────────────
+  /articles/{slug}:
+    get:
+      operationId: getArticleBySlug
+      summary: Get full article content by slug
+      tags: [Articles]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Full article
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArticleFull" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  # ── 11. POST /newsletter/subscribe ───────────────────────────────────────────
+  /newsletter/subscribe:
+    post:
+      operationId: subscribeNewsletter
+      summary: Subscribe to the newsletter
+      tags: [Newsletter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewsletterSubscribeRequest" }
+      responses:
+        "200":
+          description: Subscription status (200 for both new and existing)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewsletterSubscribeResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/RateLimit" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+
+tags:
+  - name: health
+    description: Health check
+  - name: Lawyers
+    description: Public lawyer directory endpoints
+  - name: Catalog
+    description: Practice areas, specialties, and jurisdictions
+  - name: Leads
+    description: Public lead submission (Cloudflare Turnstile protected)
+  - name: Articles
+    description: SEO content articles
+  - name: Newsletter
+    description: Email newsletter subscription
+  - name: Admin
+    description: Protected admin-only endpoints (Clerk JWT required)
