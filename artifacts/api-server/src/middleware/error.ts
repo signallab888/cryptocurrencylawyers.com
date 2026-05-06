@@ -1,17 +1,8 @@
-import type { Request, Response, NextFunction, ErrorRequestHandler } from "express";
+import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import { AppError } from "../lib/errors.js";
 
-export class AppError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly code: string,
-    message: string,
-    public readonly details?: unknown,
-  ) {
-    super(message);
-    this.name = "AppError";
-  }
-}
+export { AppError } from "../lib/errors.js";
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof AppError) {

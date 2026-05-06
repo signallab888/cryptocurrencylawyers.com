@@ -1,5 +1,5 @@
 import { type ZodTypeAny, type output } from "zod";
-import { AppError } from "../middleware/error.js";
+import { AppError } from "./errors.js";
 
 export function parseInput<S extends ZodTypeAny>(schema: S, data: unknown): output<S> {
   const result = schema.safeParse(data);

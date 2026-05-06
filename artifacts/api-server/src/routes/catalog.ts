@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   specialtiesTable,
@@ -102,6 +102,8 @@ router.get("/practice-areas", async (req, res, next) => {
       .orderBy(practiceAreasTable.name);
 
     let specialties: (typeof specialtiesTable.$inferSelect)[] = [];
+    let countMap = new Map<number, number>();
+
     if (areas.length > 0) {
       const areaIds = areas.map((a) => a.id);
       specialties = await db
@@ -109,6 +111,19 @@ router.get("/practice-areas", async (req, res, next) => {
         .from(specialtiesTable)
         .where(inArray(specialtiesTable.practiceAreaId, areaIds))
         .orderBy(specialtiesTable.name);
+
+      const specialtyIds = specialties.map((s) => s.id);
+      if (specialtyIds.length > 0) {
+        const counts = await db
+          .select({
+            specialtyId: lawyerSpecialtiesTable.specialtyId,
+            count: count(lawyerSpecialtiesTable.lawyerId),
+          })
+          .from(lawyerSpecialtiesTable)
+          .where(inArray(lawyerSpecialtiesTable.specialtyId, specialtyIds))
+          .groupBy(lawyerSpecialtiesTable.specialtyId);
+        countMap = new Map(counts.map((c) => [c.specialtyId, Number(c.count)]));
+      }
     }
 
     const specialtiesByAreaId = new Map<number, typeof specialties>();
@@ -129,7 +144,7 @@ router.get("/practice-areas", async (req, res, next) => {
         name: s.name,
         practiceAreaId: s.practiceAreaId,
         description: s.description ?? null,
-        lawyerCount: 0,
+        lawyerCount: countMap.get(s.id) ?? 0,
       })),
     }));
 
